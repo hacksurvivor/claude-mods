@@ -4,7 +4,7 @@ import type { On, SessionMessage, SessionUsage } from 'claude-code'
 
 import { browserConfig, buildPrompt, codexArgv, currentWeek, exhausted, readCodexLimits, readEvent, readModels, weekElapsed, windows } from '../hooks/codex'
 import { EFFORT_LABELS, effortsFor, effortWithin, limitTiles, liveLine, logoDots, readReply, shimmerColors } from '../hooks/look'
-import { browserStep, hear, imageCard, isLookOnly, readCall, imagesScript, isVoiceReply, levelBars, QUIET, readBridge, readPreview, speakable, splitImages, talkState, voiceArgv, voiceReply } from '../hooks/talk'
+import { browserStep, hear, imageCard, isLookOnly, readCall, imagesScript, isVoiceReply, liveWave, QUIET, readBridge, readPreview, speakable, splitImages, talkState, voiceArgv, voiceReply } from '../hooks/talk'
 
 declare const setTimeout: (run: (value: unknown) => void, ms: number) => unknown
 
@@ -579,7 +579,7 @@ describe('Codex voice and images', () => {
     const live = hear(QUIET, { t: 'state', phase: 'live' })
     const heard = hear(live, { t: 'caption', role: 'user', text: 'make it', final: false })
 
-    expect(readBridge('{"t":"level","mic":0.4}')).toEqual({ t: 'level', mic: 0.4 })
+    expect(readBridge('{"t":"work","text":"Running pwd"}')).toEqual({ t: 'work', text: 'Running pwd' })
     expect(readBridge('not json')).toBeUndefined()
     expect(heard).toMatchObject({ phase: 'live', you: 'make it' })
     expect(hear(heard, { t: 'state', phase: 'ended' })).toEqual(QUIET)
@@ -681,10 +681,21 @@ describe('who does the work you ask for out loud', () => {
   test('keeps the strip short and Claude\'s answer sayable', () => {
     expect(talkState({ ...QUIET, phase: 'live', work: 'Running a very long command line here' })).toBe('Running a very long c…')
     expect(talkState({ ...QUIET, phase: 'ending' })).toBe('Ending')
-    expect(levelBars(0)).toEqual([3, 3, 3, 3, 3])
-    expect(Math.max(...levelBars(1))).toBe(16)
+    expect(liveWave(false).isInteractive).toBe(true)
+    expect(liveWave(false).source).toContain('<animate')
+    expect(liveWave(false).source).toContain('color-scheme:light dark')
+    expect(liveWave(true).isInteractive).toBe(false)
+    expect(liveWave(true).source).not.toContain('<animate')
     expect(speakable('## Done\n\nFixed **two** bugs in `cart.ts`.\n\n```ts\nx()\n```')).toBe('Done Fixed two bugs in cart.ts. (code)')
-    expect(voiceArgv('/p', '/w', '/s.sock', 'claude', 'gpt').slice(-4)).toEqual(['/w', '/s.sock', 'claude', 'gpt'])
+    expect(voiceArgv('/p', '/w', '/s.sock', 'claude', '/b.sock', { model: 'gpt', effort: 'low' }).slice(-6)).toEqual([
+      '/w',
+      '/s.sock',
+      'claude',
+      '/b.sock',
+      'gpt',
+      'low',
+    ])
+    expect(voiceArgv('/p', '/w', '/s.sock', 'codex', '/b.sock').slice(-2)).toEqual(['-', '-'])
   })
 
   test('work passed to Claude by voice lands in the chat and runs on Claude, not Codex', SLOW, async ($, on) => {
@@ -816,5 +827,43 @@ describe("Codex in Claude's browser pane", () => {
     await $.tool.call({ tool: 'mcp__baton__codex', tool_use_id: 'tu-a', prompt: 'check producthunt' } as never)
 
     expect(seen.panes).toEqual(['Claude_Browser navigate'])
+  })
+})
+
+describe('a live call stays light', () => {
+  test('words of the call do not redraw the chat; only what the strip shows does', SLOW, async ($, on) => {
+    const seen = world(on, 15)
+    let redraws = 0
+
+    on('ui.invalidate', () => {
+      redraws += 1
+
+      return { value: undefined }
+    })
+
+    seen.voiceRun = [
+      '{"t":"state","phase":"connecting"}',
+      '{"t":"state","phase":"live"}',
+      ...Array.from({ length: 40 }, (_, at) => JSON.stringify({ t: 'caption', role: at % 2 ? 'assistant' : 'user', text: 'word '.repeat(at + 1), final: false })),
+      '{"t":"work","text":"Running pwd"}',
+      '{"t":"work","text":""}',
+      '',
+    ].join('\n')
+
+    const BAND = { hasSurvey: false, isWorking: false, maxRows: 6, bodyColumns: 120, scroll: { offset: 0, bodyRows: 6 }, view: {} }
+    const ui = await $.ui.mount({ plugin: 'baton', surface: 'desktop', component: 'AbovePrompt', props: BAND })
+
+    await ui.press({ key: 'talk' })
+
+    for (let tries = 0; tries < 50 && redraws < 3; tries++) {
+      await new Promise(resolve => setTimeout(resolve, 20))
+    }
+
+    await new Promise(resolve => setTimeout(resolve, 100))
+    await ui.unmount()
+
+    // connecting, live, Running pwd, Listening again, the end: not 40 more.
+    expect(redraws).toBeGreaterThan(0)
+    expect(redraws).toBeLessThan(10)
   })
 })

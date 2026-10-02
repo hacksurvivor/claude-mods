@@ -45,7 +45,7 @@ import {
   imagesScript,
   isLookOnly,
   isVoiceReply,
-  levelBars,
+  liveWave,
   PREVIEW_SCRIPT,
   QUIET,
   readBridge,
@@ -300,6 +300,20 @@ export const register: Register = on => {
   const once = new Set<string>()
   // Image card previews by path: absent until asked, undefined while loading.
   const previews = new Map<string, Preview | null | undefined>()
+  // Each image's card, built once: its picture is ~100 KB of SVG, and every
+  // redraw re-runs the chat's rows.
+  const cards = new Map<string, ReturnType<typeof imageCard>>()
+  const cardFor = (path: string, preview: Preview | null | undefined) => {
+    if (!preview) {
+      return undefined
+    }
+
+    const card = cards.get(path) ?? imageCard(preview)
+
+    cards.set(path, card)
+
+    return card
+  }
   const toolImages = new Map<string, string[]>()
   let codexReadAt = 0
   let models: CodexModel[] = []
@@ -682,7 +696,7 @@ export const register: Register = on => {
         )}
         {images.map(path => {
           const preview = previews.get(path)
-          const card = preview ? imageCard(preview) : undefined
+          const card = cardFor(path, preview)
           const name = path.split('/').at(-1) ?? path
 
           return (
@@ -737,7 +751,7 @@ export const register: Register = on => {
       <Box flexDirection="column" gap={1}>
         {images.map(path => {
           const preview = previews.get(path)
-          const card = preview ? imageCard(preview) : undefined
+          const card = cardFor(path, preview)
 
           return (
             <Box key={`image-${path}`} flexDirection="column">
@@ -934,7 +948,14 @@ export const register: Register = on => {
       const [cwd, at, dir] = await Promise.all([$.session.cwd(), $.clock.now(), privateDir($)])
       const socket = `${dir}baton-voice-${at.toString(36)}.sock`
       const browserSocket = `${dir}baton-browser-${at.toString(36)}v.sock`
-      const run = $.process.spawn({ argv: voiceArgv($.plugin.root, cwd, socket, voiceWorker, browserSocket, codexModel), cwd, input: '' })
+      const run = $.process.spawn({
+        argv: voiceArgv($.plugin.root, cwd, socket, voiceWorker, browserSocket, {
+          model: codexModel,
+          effort: effortWithin(codexEffort, offered()),
+        }),
+        cwd,
+        input: '',
+      })
       // What Codex browses while you talk shows in Claude's browser pane too.
       const decider = browserDecider(() => $.ui.invalidate('ui.render'))
       let isTalking = true
@@ -986,11 +1007,12 @@ export const register: Register = on => {
               void $.prompt.submit({ text: said, asUser: true })
             }
 
-            // Level readings come five a second; redraw only when the bars move.
-            const shape = event.t === 'level' ? levelBars(talk.level).join() : `${event.t}:${drawn}`
+            // A redraw re-runs every Baton row in the chat, so the strip redraws
+            // only when what it shows changes: not for each word of the call.
+            const shown = `${talk.phase}|${talk.muted}|${talkState(talk)}`
 
-            if (shape !== drawn) {
-              drawn = shape
+            if (shown !== drawn) {
+              drawn = shown
               $.ui.invalidate('ui.render')
             }
           }
@@ -1096,11 +1118,7 @@ export const register: Register = on => {
       if (talk.phase !== 'off') {
         const state = talkState(talk)
         const tones = shimmerColors(state, now)
-        const bars = levelBars(talk.muted ? 0 : talk.level)
-        const level =
-          '<svg xmlns="http://www.w3.org/2000/svg" width="23" height="16" viewBox="0 0 23 16">' +
-          bars.map((height, at) => `<rect x="${at * 5}" y="${(16 - height) / 2}" width="3" height="${height}" rx="1.5" fill="#d4d4ce"/>`).join('') +
-          '</svg>'
+        const wave = liveWave(talk.muted)
         const isLive = talk.phase === 'live'
 
         // The call itself: the mark and a short state word, then level, who
@@ -1119,7 +1137,9 @@ export const register: Register = on => {
             </Box>
             <Box flexGrow={1} />
             <Box flexDirection="row" alignItems="center" gap={2} flexShrink={0}>
-              {isLive && <Svg key="level" source={level} alt="Microphone level" width={23} height={16} />}
+              {isLive && (
+                <Svg key="live" source={wave.source} alt={talk.muted ? 'Muted' : 'Live'} width={25} height={16} isInteractive={wave.isInteractive} />
+              )}
               {isLive && (
                 <Box flexDirection="row" alignItems="center" gap={1}>
                   <Text dimColor>Work:</Text>

@@ -8,7 +8,6 @@ export type BridgeEvent =
   | { t: 'caption'; role: 'user' | 'assistant'; text: string; final: boolean }
   | { t: 'work'; text: string }
   | { t: 'image'; path: string }
-  | { t: 'level'; mic: number }
   | { t: 'exchange'; you: string; codex: string; images: string[] }
   | { t: 'claude'; task: string; you: string }
 
@@ -26,8 +25,27 @@ export function readBridge(line: string): BridgeEvent | undefined {
 }
 
 /** Node through a login shell, as Baton runs codex, so the user's PATH holds. */
-export function voiceArgv(root: string, cwd: string, socket: string, worker: Worker, browserSocket: string, model?: string): string[] {
-  return ['/bin/zsh', '-lc', 'exec node "$@"', 'node', `${root}/hooks/voice.mjs`, cwd, socket, worker, browserSocket, ...(model ? [model] : [])]
+export function voiceArgv(
+  root: string,
+  cwd: string,
+  socket: string,
+  worker: Worker,
+  browserSocket: string,
+  choice: { model?: string; effort?: string } = {},
+): string[] {
+  return [
+    '/bin/zsh',
+    '-lc',
+    'exec node "$@"',
+    'node',
+    `${root}/hooks/voice.mjs`,
+    cwd,
+    socket,
+    worker,
+    browserSocket,
+    choice.model ?? '-',
+    choice.effort ?? '-',
+  ]
 }
 
 /** The voice strip's state, from what the bridge has said. */
@@ -37,10 +55,9 @@ export type Talk = {
   you: string
   codex: string
   work: string
-  level: number
 }
 
-export const QUIET: Talk = { phase: 'off', muted: false, you: '', codex: '', work: '', level: 0 }
+export const QUIET: Talk = { phase: 'off', muted: false, you: '', codex: '', work: '' }
 
 export function hear(talk: Talk, event: BridgeEvent): Talk {
   switch (event.t) {
@@ -50,18 +67,49 @@ export function hear(talk: Talk, event: BridgeEvent): Talk {
       return event.role === 'user' ? { ...talk, you: event.text, codex: event.final ? talk.codex : '' } : { ...talk, codex: event.text }
     case 'work':
       return { ...talk, work: event.text }
-    case 'level':
-      return { ...talk, level: event.mic }
     default:
       return talk
   }
 }
 
-/** Five bars for the mic level, tallest in the middle: 3px at rest, 16 at full. */
-export function levelBars(level: number): number[] {
-  const shape = [0.45, 0.75, 1, 0.7, 0.4]
+/**
+ * The live mark: five bars that move on their own while the call is live and
+ * lie flat when muted. It animates inside its own frame, so the app never
+ * redraws for it; a redraw re-runs every Baton row in the chat.
+ */
+export function liveWave(isMuted: boolean): { source: string; isInteractive: boolean } {
+  const heights = [5, 9, 14, 10, 6]
+  // A frame of its own takes the page's color scheme, with no default margin.
+  const frame = '<style>:root{color-scheme:light dark}html,body,svg{margin:0}</style>'
+  const bar = (height: number, at: number) => {
+    const rest = 3
+    const y = (16 - (isMuted ? rest : height)) / 2
 
-  return shape.map(scale => Math.round(3 + Math.min(1, Math.max(0, level)) * 13 * scale))
+    if (isMuted) {
+      return `<rect x="${at * 5}" y="${y}" width="3" height="${rest}" rx="1.5" fill="#8a8984"/>`
+    }
+
+    const low = Math.max(rest, Math.round(height * 0.35))
+    const values = `${height};${low};${height}`
+    const ys = `${(16 - height) / 2};${(16 - low) / 2};${(16 - height) / 2}`
+    const timing = `dur="${(0.9 + at * 0.13).toFixed(2)}s" begin="-${(at * 0.21).toFixed(2)}s" repeatCount="indefinite"`
+
+    return (
+      `<rect x="${at * 5}" y="${y}" width="3" height="${height}" rx="1.5" fill="#d4d4ce">` +
+      `<animate attributeName="height" values="${values}" ${timing}/>` +
+      `<animate attributeName="y" values="${ys}" ${timing}/>` +
+      '</rect>'
+    )
+  }
+
+  return {
+    isInteractive: !isMuted,
+    source:
+      '<svg xmlns="http://www.w3.org/2000/svg" width="25" height="16" viewBox="0 0 25 16">' +
+      (isMuted ? '' : frame) +
+      heights.map(bar).join('') +
+      '</svg>',
+  }
 }
 
 /** The strip's state word: short, so the captions keep their room. */

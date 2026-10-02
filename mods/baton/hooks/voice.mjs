@@ -6,10 +6,10 @@
 // passes through here. It reports to Baton as JSON lines on stdout and takes
 // Mute and End over HTTP on a Unix socket.
 //
-//   node voice.mjs <cwd> <socket> <codex|claude> <browser socket> [model]
+//   node voice.mjs <cwd> <socket> <codex|claude> <browser socket> <model|-> <effort|->
 //
 // Lines out: {t:'state',phase,error?} {t:'caption',role,text,final}
-// {t:'work',text} {t:'image',path} {t:'level',mic} {t:'exchange',you,codex,images}
+// {t:'work',text} {t:'image',path} {t:'exchange',you,codex,images}
 // {t:'claude',task,you}: work the user wants Claude to do; Codex's run of it is stopped.
 //
 // Codex does the work it is handed, unless the user says Claude should (or
@@ -21,7 +21,11 @@ import { createServer } from 'node:http'
 import { existsSync, readFileSync, rmSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 
-const [cwd = process.cwd(), socketPath, firstWorker = 'codex', browserSocket = '-', model] = process.argv.slice(2)
+const [cwd = process.cwd(), socketPath, firstWorker = 'codex', browserSocket = '-', modelArg = '-', effortArg = '-'] = process.argv.slice(2)
+const model = modelArg === '-' ? undefined : modelArg
+// The strip's effort for the work the voice hands Codex; otherwise Codex's
+// own default applies, which can be far slower than a spoken task wants.
+const effort = effortArg === '-' ? undefined : effortArg
 
 // Claude's browser pane for the voice's Codex turns, as Baton's codex tool has
 // it: Codex does not ask before its steps; Baton asks in Claude.
@@ -479,23 +483,6 @@ function serve() {
   server.listen(socketPath)
 }
 
-async function levels() {
-  while (phase === 'live') {
-    try {
-      const answer = await toHost({ type: 'inspectAudio' }, 2000)
-
-      if (answer.type === 'audioState') {
-        // Speech peaks sit far below full scale; a square root makes them visible.
-        say({ t: 'level', mic: muted ? 0 : Math.min(1, Math.sqrt(answer.state.microphonePeak / 32767) * 1.4) })
-      }
-    } catch {
-      // A missed reading is fine; the next one comes in 200 ms.
-    }
-
-    await sleep(200)
-  }
-}
-
 process.on('SIGTERM', () => void finish())
 process.on('SIGINT', () => void finish())
 process.on('SIGHUP', () => void finish())
@@ -524,6 +511,7 @@ try {
   const started = await call('thread/start', {
     cwd,
     ...(model ? { model } : {}),
+    ...(effort ? { config: { model_reasoning_effort: effort } } : {}),
     sandbox: 'workspace-write',
     approvalPolicy: 'never',
   })
@@ -560,7 +548,6 @@ try {
 
   phase = 'live'
   say({ t: 'state', phase: 'live' })
-  void levels()
 } catch (error) {
   await finish(String(error.message ?? error))
 }
