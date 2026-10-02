@@ -1,3 +1,5 @@
+![Nightshift: a crescent moon carrying a lantern](mods/nightshift/assets/nightshift-moon.png)
+
 # claude-mods
 
 Claude Code mods by hacksurvivor.
