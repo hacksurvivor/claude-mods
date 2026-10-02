@@ -4,7 +4,7 @@ import type { On, SessionMessage, SessionUsage } from 'claude-code'
 
 import { browserConfig, buildPrompt, codexArgv, currentWeek, exhausted, readCodexLimits, readEvent, readModels, weekElapsed, windows } from '../hooks/codex'
 import { EFFORT_LABELS, effortsFor, effortWithin, limitTiles, liveLine, logoDots, readReply, shimmerColors } from '../hooks/look'
-import { browserStep, hear, imageCard, isLookOnly, readCall, imagesScript, isVoiceReply, liveWave, QUIET, readBridge, readPreview, speakable, splitImages, talkState, voiceArgv, voiceReply } from '../hooks/talk'
+import { browserStep, hear, SPOKE, VoiceFeed, imageCard, isLookOnly, readCall, imagesScript, isVoiceReply, liveWave, QUIET, readBridge, readPreview, speakable, splitImages, talkState, voiceArgv, voiceReply } from '../hooks/talk'
 
 declare const setTimeout: (run: (value: unknown) => void, ms: number) => unknown
 
@@ -865,5 +865,114 @@ describe('a live call stays light', () => {
     // connecting, live, Running pwd, Listening again, the end: not 40 more.
     expect(redraws).toBeGreaterThan(0)
     expect(redraws).toBeLessThan(10)
+  })
+})
+
+describe("Codex's voice, live in the chat", () => {
+  async function drain(feed: VoiceFeed): Promise<string[]> {
+    const pieces: string[] = []
+
+    for await (const piece of feed.read()) {
+      pieces.push(piece)
+    }
+
+    return pieces
+  }
+
+  test('streams each new word once, spaces the parts of a reply, then its images', async () => {
+    const feed = new VoiceFeed()
+
+    feed.assistant('On', false)
+    feed.assistant('On it', false)
+    feed.assistant('On it.', true)
+    feed.assistant('Here', false)
+    feed.assistant('Here it is.', true)
+    feed.image('/Users/me/a.png')
+    feed.close()
+
+    expect((await drain(feed)).join('')).toBe('On it. Here it is.\n\n![image](/Users/me/a.png)')
+  })
+
+  test('your words land the moment you finish, before Codex has replied', SLOW, async ($, on) => {
+    const seen = world(on, 15)
+
+    seen.voiceRun = [
+      '{"t":"state","phase":"live"}',
+      '{"t":"caption","role":"user","text":"open the docs","final":true}',
+      '{"t":"caption","role":"assistant","text":"Opening","final":false}',
+      '{"t":"caption","role":"assistant","text":"Opening them now.","final":true}',
+      '{"t":"caption","role":"assistant","text":"Done, they are open.","final":true}',
+      '{"t":"state","phase":"ended"}',
+      '',
+    ].join('\n')
+
+    const BAND = { hasSurvey: false, isWorking: false, maxRows: 6, bodyColumns: 120, scroll: { offset: 0, bodyRows: 6 }, view: {} }
+    const ui = await $.ui.mount({ plugin: 'nightshift', surface: 'desktop', component: 'AbovePrompt', props: BAND })
+
+    await ui.press({ key: 'talk' })
+
+    for (let tries = 0; tries < 50 && seen.submitted.length === 0; tries++) {
+      await new Promise(resolve => setTimeout(resolve, 20))
+    }
+
+    await ui.unmount()
+    expect(seen.submitted).toEqual(['open the docs'])
+
+    const shown = await ask($, 'tl', 'open the docs')
+
+    expect(shown).toContain('Opening them now. Done, they are open.')
+    expect(seen.claude).toBe(0)
+  })
+
+  test('Codex speaking on its own gets a Codex row of its own', SLOW, async ($, on) => {
+    const seen = world(on, 15)
+
+    seen.voiceRun = [
+      '{"t":"state","phase":"live"}',
+      '{"t":"caption","role":"assistant","text":"Your build finished.","final":true}',
+      '{"t":"state","phase":"ended"}',
+      '',
+    ].join('\n')
+
+    const BAND = { hasSurvey: false, isWorking: false, maxRows: 6, bodyColumns: 120, scroll: { offset: 0, bodyRows: 6 }, view: {} }
+    const ui = await $.ui.mount({ plugin: 'nightshift', surface: 'desktop', component: 'AbovePrompt', props: BAND })
+
+    await ui.press({ key: 'talk' })
+
+    for (let tries = 0; tries < 50 && seen.submitted.length === 0; tries++) {
+      await new Promise(resolve => setTimeout(resolve, 20))
+    }
+
+    await ui.unmount()
+    expect(seen.submitted).toEqual([SPOKE])
+    expect(await ask($, 'ts', SPOKE)).toContain('Your build finished.')
+  })
+
+  test("Codex's reply closes before Claude takes the task you passed it", SLOW, async ($, on) => {
+    const seen = world(on, 15)
+
+    seen.voiceRun = [
+      '{"t":"state","phase":"live"}',
+      '{"t":"caption","role":"user","text":"pass this to Claude: fix the footer","final":true}',
+      '{"t":"caption","role":"assistant","text":"Passing it to Claude.","final":true}',
+      '{"t":"claude","task":"Fix the footer","you":"pass this to Claude: fix the footer"}',
+      '',
+    ].join('\n')
+
+    const BAND = { hasSurvey: false, isWorking: false, maxRows: 6, bodyColumns: 120, scroll: { offset: 0, bodyRows: 6 }, view: {} }
+    const ui = await $.ui.mount({ plugin: 'nightshift', surface: 'desktop', component: 'AbovePrompt', props: BAND })
+
+    await ui.press({ key: 'talk' })
+
+    for (let tries = 0; tries < 50 && seen.submitted.length < 2; tries++) {
+      await new Promise(resolve => setTimeout(resolve, 20))
+    }
+
+    await ui.unmount()
+    expect(seen.submitted).toEqual(['pass this to Claude: fix the footer', 'Fix the footer'])
+    expect(await ask($, 'tc1', 'pass this to Claude: fix the footer')).toContain('Passing it to Claude.')
+
+    await ask($, 'tc2', 'Fix the footer')
+    expect(seen.claude).toBe(1)
   })
 })

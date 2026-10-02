@@ -354,3 +354,98 @@ export function readCall(text: string): BrowserCall | undefined {
     return undefined
   }
 }
+
+// --- Codex's voice, live in the chat ------------------------------------------
+
+/** The row a reply Codex speaks on its own opens with; the chat hides it. */
+export const SPOKE = '(Codex spoke)'
+
+/**
+ * One spoken reply on its way into the chat. The voice bridge feeds it as
+ * Codex talks; the chat row reads it as it fills, and closes with the images.
+ */
+export class VoiceFeed {
+  private chunks: string[] = []
+  private images: string[] = []
+  private segment = ''
+  private segments = 0
+  private isClosed = false
+  private wake: (() => void) | undefined
+
+  /** Codex's words so far in this part of the reply (each caption repeats the whole part). */
+  assistant(text: string, isFinal: boolean): void {
+    if (this.isClosed) {
+      return
+    }
+
+    const lead = this.segment === '' && this.segments > 0 ? ' ' : ''
+    const fresh = text.startsWith(this.segment) ? text.slice(this.segment.length) : ''
+
+    if (fresh !== '') {
+      this.push(`${lead}${fresh}`)
+      this.segment = text
+    }
+
+    if (isFinal) {
+      this.segment = ''
+      this.segments += 1
+    }
+  }
+
+  image(path: string): void {
+    if (!this.isClosed && !this.images.includes(path)) {
+      this.images.push(path)
+      this.notify()
+    }
+  }
+
+  close(): void {
+    this.isClosed = true
+    this.notify()
+  }
+
+  get closed(): boolean {
+    return this.isClosed
+  }
+
+  /** Whether Codex has said anything in this reply yet. */
+  get hasWords(): boolean {
+    return this.segments > 0 || this.segment !== ''
+  }
+
+  /** The words as they come, then each image as its own markdown line. */
+  async *read(): AsyncGenerator<string> {
+    let shown = 0
+
+    for (;;) {
+      while (this.chunks.length > 0) {
+        yield this.chunks.shift() ?? ''
+      }
+
+      while (shown < this.images.length) {
+        yield `\n\n![image](${this.images[shown]})`
+        shown += 1
+      }
+
+      if (this.isClosed && this.chunks.length === 0 && shown === this.images.length) {
+        return
+      }
+
+      await new Promise<void>(resolve => {
+        this.wake = resolve
+      })
+    }
+  }
+
+  private push(text: string): void {
+    this.chunks.push(text)
+    this.notify()
+  }
+
+  private notify(): void {
+    const wake = this.wake
+
+    this.wake = undefined
+    wake?.()
+  }
+}

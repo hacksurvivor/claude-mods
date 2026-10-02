@@ -53,11 +53,12 @@ import {
   readPreview,
   speakable,
   splitImages,
+  SPOKE,
   talkState,
   TOOLS_TO_CODEX,
   VOICE_HEADER,
   voiceArgv,
-  voiceReply,
+  VoiceFeed,
 } from './talk'
 import type { BrowserAccess, BrowserCall, Preview, Talk, Worker } from './talk'
 
@@ -284,9 +285,11 @@ export const register: Register = on => {
   // exchange waiting to be kept in the chat as your words and Codex's reply.
   let talk: Talk = QUIET
   let talkSocket: string | undefined
-  const spoken = new Map<string, string[]>()
-  // Rows the voice put in the chat: what you said to Codex, or asked Claude for.
-  const voiceRows = new Map<string, Worker>()
+  // Codex's spoken replies, each waiting for its chat row by the words that open it.
+  const feeds = new Map<string, VoiceFeed[]>()
+  // Rows the voice put in the chat: what you said to Codex, what you asked Claude
+  // for, or the hidden row a reply Codex speaks on its own opens with.
+  const voiceRows = new Map<string, Worker | 'hidden'>()
   // Who does the work you ask for out loud; Claude's tasks get its answer read back.
   let voiceWorker: Worker = 'codex'
   // Who does browser, Mac-app, image and document work: Claude's own tools, or Codex.
@@ -432,20 +435,28 @@ export const register: Register = on => {
       return yield* next(e)
     }
 
-    // A spoken exchange is kept as your words and Codex's reply; no model runs.
+    // A voice row: Codex's spoken reply streams in as Codex talks; no model runs.
     const said = prompts.get(e.turnId)
-    const waiting = said === undefined ? undefined : spoken.get(said)
-    const kept = waiting?.shift()
+    const queued = said === undefined ? undefined : feeds.get(said)
+    const feed = queued?.shift()
 
-    if (kept !== undefined) {
-      if (waiting?.length === 0 && said !== undefined) {
-        spoken.delete(said)
+    if (feed !== undefined) {
+      if (queued?.length === 0 && said !== undefined) {
+        feeds.delete(said)
       }
 
-      yield { kind: 'text', index: 0, text: kept }
+      let answer = `${VOICE_HEADER}\n\n`
+
+      yield { kind: 'text', index: 0, text: answer }
+
+      for await (const piece of feed.read()) {
+        answer += piece
+        yield { kind: 'text', index: 0, text: piece }
+      }
+
       yield { kind: 'stop', stopReason: 'end_turn', usage: null }
 
-      const result: TurnStepResult = { turnId: e.turnId, index: e.index, answer: kept, toolUses: [], stopReason: 'end_turn', usage: null }
+      const result: TurnStepResult = { turnId: e.turnId, index: e.index, answer, toolUses: [], stopReason: 'end_turn', usage: null }
 
       return result
     }
@@ -671,6 +682,11 @@ export const register: Register = on => {
     const { words, images } = splitImages(reply.words)
     const meta = metas.get(keyOf(e.props.text))
 
+    // A spoken reply that ended before Codex said anything leaves no row.
+    if (isVoice && words === '' && images.length === 0) {
+      return <Box />
+    }
+
     wantPreviews($, images, previews)
 
     return (
@@ -723,6 +739,11 @@ export const register: Register = on => {
     }
 
     const { Box, Text } = $.ui.resolve(e)
+
+    // A reply Codex spoke on its own shows only as Codex's row.
+    if (to === 'hidden') {
+      return <Box />
+    }
 
     return (
       <Box flexDirection="row" gap={1}>
@@ -964,6 +985,27 @@ export const register: Register = on => {
       let failure: string | undefined
       let drawn = ''
 
+      // The reply Codex is speaking, streaming into its chat row. It ends a
+      // moment after Codex stops, when you speak again, or when the call ends.
+      let reply: VoiceFeed | undefined
+      let heard = 0
+      const endReply = () => {
+        reply?.close()
+        reply = undefined
+      }
+      const openReply = (text: string, row: Worker | 'hidden'): VoiceFeed => {
+        endReply()
+
+        const fresh = new VoiceFeed()
+
+        feeds.set(text, [...(feeds.get(text) ?? []), fresh])
+        voiceRows.set(text, row)
+        void $.prompt.submit({ text, asUser: true })
+        reply = fresh
+
+        return fresh
+      }
+
       talk = { ...QUIET, phase: 'connecting' }
       talkSocket = socket
       talkRun = run
@@ -992,19 +1034,46 @@ export const register: Register = on => {
               failure = event.error
             }
 
-            // Work you want Claude to do: Claude takes it in the chat, Codex stops.
+            // Your words land as a row the moment you finish; speaking again
+            // closes the reply before it.
+            if (event.t === 'caption' && event.role === 'user') {
+              if (event.final) {
+                openReply(event.text, 'codex')
+              } else if (reply?.hasWords) {
+                endReply()
+              }
+            }
+
+            // Codex's words stream into the open reply, or open one of their own.
+            if (event.t === 'caption' && event.role === 'assistant') {
+              const into = reply ?? openReply(SPOKE, 'hidden')
+              const mark = ++heard
+
+              into.assistant(event.text, event.final)
+
+              if (event.final) {
+                $.clock.after(1500, () => {
+                  if (heard === mark && reply === into) {
+                    endReply()
+                  }
+                })
+              }
+            }
+
+            if (event.t === 'image') {
+              ;(reply ?? openReply(SPOKE, 'hidden')).image(event.path)
+            }
+
+            // Work you want Claude to do: Codex's reply closes, then Claude takes it.
             if (event.t === 'claude' && event.task !== '') {
+              endReply()
               claudeTasks.add(event.task)
               voiceRows.set(event.task, 'claude')
               void $.prompt.submit({ text: event.task, asUser: true })
             }
 
-            if (event.t === 'exchange' && (event.you !== '' || event.images.length > 0)) {
-              const said = event.you === '' ? '(spoken to Codex)' : event.you
-
-              spoken.set(said, [...(spoken.get(said) ?? []), voiceReply(event.codex, event.images)])
-              voiceRows.set(said, 'codex')
-              void $.prompt.submit({ text: said, asUser: true })
+            if (event.t === 'state' && event.phase === 'ended') {
+              endReply()
             }
 
             // A redraw re-runs every Nightshift row in the chat, so the strip redraws
@@ -1021,6 +1090,7 @@ export const register: Register = on => {
         failure = error instanceof Error ? error.message : String(error)
       }
 
+      endReply()
       talk = QUIET
       talkSocket = undefined
       talkRun = undefined
