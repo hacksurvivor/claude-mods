@@ -1,7 +1,7 @@
 {
   "name": "nightshift",
   "displayName": "Nightshift",
-  "version": "0.4.4",
+  "version": "0.4.5",
   "description": "Codex inside Claude Code: it picks up the chat when your Claude limit runs out, talks with you through Codex's live voice, makes images Claude can ask for, and browses in Claude's browser pane",
   "author": {
     "name": "hacksurvivor",

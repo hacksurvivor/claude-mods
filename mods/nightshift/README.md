@@ -1,3 +1,5 @@
+![Nightshift icon](assets/icon.png)
+
 # Nightshift
 
 Codex inside Claude Code. Nightshift is a Claude Code mod that puts OpenAI's Codex one click away in the same window:
@@ -8,6 +10,8 @@ Codex inside Claude Code. Nightshift is a Claude Code mod that puts OpenAI's Cod
 - **Images**: ask Claude for an image and it asks Codex, which makes it with Codex's own image generator on your ChatGPT plan. The image shows in the chat.
 - **Tools: Codex** hands browser work, Mac apps, images and documents to Codex. When Codex browses, it browses in Claude's own browser pane, so you watch it there.
 - `/codex <prompt>` answers one message with Codex, whatever the mode.
+
+![Nightshift in the Claude desktop app: a Codex reply covering for Claude, a voice exchange, Codex asking to use Claude's browser, and the Codex strip while talking and at rest](assets/nightshift.png)
 
 ## Requirements
 
