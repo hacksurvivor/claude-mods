@@ -1120,7 +1120,7 @@ export const register: Register = on => {
             if (event.t === 'caption' && event.role === 'user') {
               if (event.final) {
                 openReply(event.text, 'codex')
-              } else if (reply?.hasWords) {
+              } else if (reply?.hasWords()) {
                 endReply()
               }
             }

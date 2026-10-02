@@ -404,12 +404,8 @@ export class VoiceFeed {
     this.notify()
   }
 
-  get closed(): boolean {
-    return this.isClosed
-  }
-
   /** Whether Codex has said anything in this reply yet. */
-  get hasWords(): boolean {
+  hasWords(): boolean {
     return this.segments > 0 || this.segment !== ''
   }
 
