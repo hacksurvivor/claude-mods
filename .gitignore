@@ -1,0 +1,9 @@
+# graft's local graph cache — regenerable, not committed (run `graft build`).
+/graft/
+# Only Relay is published; the effort router stays local.
+/mods/effort-router/
+# Generated mod type definitions.
+.claude-plugin/types/
+.DS_Store
+# Local search config for graft; not part of the published mods.
+/.ignore
