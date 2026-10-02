@@ -1,4 +1,4 @@
-// What Baton draws with: the Codex CLI's logo (codex-frames.ts) as a still dot
+// What Nightshift draws with: the Codex CLI's logo (codex-frames.ts) as a still dot
 // matrix, its working-line shimmer, and a Codex reply read back into its
 // header, its steps and its words.
 

@@ -169,7 +169,7 @@ function world(on: On, percentUsed: number): World {
   on('process.run', async ($, e) => {
     const script = e.argv.join(' ')
 
-    // A Codex run with browser steps ends once Baton has answered them.
+    // A Codex run with browser steps ends once Nightshift has answered them.
     if (script.includes('exec codex') && script.includes('claude_browser') && seen.awaitsBrowser) {
       for (let tries = 0; tries < 200 && seen.results.length === 0; tries++) {
         await new Promise(resolve => setTimeout(resolve, 10))
@@ -291,7 +291,7 @@ describe('the Codex look', () => {
     world(on, 100)
 
     const ui = await $.ui.mount({
-      plugin: 'baton',
+      plugin: 'nightshift',
       surface: 'desktop',
       component: 'AssistantMessage',
       props: { text: '**Codex**\n\n- ran `npm test`\n\nAll good.', isFirstOfReply: true },
@@ -314,7 +314,7 @@ describe('the Codex look', () => {
     })
 
     const ui = await $.ui.mount({
-      plugin: 'baton',
+      plugin: 'nightshift',
       surface: 'desktop',
       component: 'AssistantMessage',
       props: { text: 'A normal Claude reply.', isFirstOfReply: true },
@@ -351,7 +351,7 @@ describe('the Codex strip', () => {
     world(on, 15)
 
     const BAND = { hasSurvey: false, isWorking: false, maxRows: 6, bodyColumns: 120, scroll: { offset: 0, bodyRows: 6 }, view: {} }
-    const ui = await $.ui.mount({ plugin: 'baton', surface: 'desktop', component: 'AbovePrompt', props: BAND })
+    const ui = await $.ui.mount({ plugin: 'nightshift', surface: 'desktop', component: 'AbovePrompt', props: BAND })
 
     expect(await ui.find({ key: 'effort', type: 'Select' })).toBeDefined()
     expect(await ui.find({ key: 'tools', type: 'Select' })).toBeDefined()
@@ -368,7 +368,7 @@ describe('the Codex strip', () => {
     let meter = ''
 
     for (let tries = 0; tries < 20 && meter === ''; tries++) {
-      const ui = await $.ui.mount({ plugin: 'baton', surface: 'desktop', component: 'AbovePrompt', props: BAND })
+      const ui = await $.ui.mount({ plugin: 'nightshift', surface: 'desktop', component: 'AbovePrompt', props: BAND })
       const found = await ui.find({ key: 'limit' })
 
       meter = found === undefined ? '' : JSON.stringify(found)
@@ -385,7 +385,7 @@ describe('the strip over time', () => {
 
   async function strip($: Engine, query: Record<string, unknown>): Promise<string> {
     for (let tries = 0; tries < 20; tries++) {
-      const ui = await $.ui.mount({ plugin: 'baton', surface: 'desktop', component: 'AbovePrompt', props: BAND })
+      const ui = await $.ui.mount({ plugin: 'nightshift', surface: 'desktop', component: 'AbovePrompt', props: BAND })
       const found = await ui.find(query)
 
       await ui.unmount()
@@ -544,13 +544,13 @@ describe('the Codex strip dropdowns', () => {
     await ask($, 't1', 'add a footer')
 
     const BAND = { hasSurvey: false, isWorking: false, maxRows: 6, bodyColumns: 120, scroll: { offset: 0, bodyRows: 6 }, view: {} }
-    const ui = await $.ui.mount({ plugin: 'baton', surface: 'desktop', component: 'AbovePrompt', props: BAND })
+    const ui = await $.ui.mount({ plugin: 'nightshift', surface: 'desktop', component: 'AbovePrompt', props: BAND })
 
     expect((await ui.find({ key: 'effort', type: 'Select' }))?.props.value).toBe('medium')
     await ui.select({ key: 'effort', value: 'xhigh' })
     await ui.unmount()
 
-    const after = await $.ui.mount({ plugin: 'baton', surface: 'desktop', component: 'AbovePrompt', props: BAND })
+    const after = await $.ui.mount({ plugin: 'nightshift', surface: 'desktop', component: 'AbovePrompt', props: BAND })
 
     expect((await after.find({ key: 'effort', type: 'Select' }))?.props.value).toBe('xhigh')
     await after.unmount()
@@ -562,7 +562,7 @@ describe('the Codex strip dropdowns', () => {
     await ask($, 't1', 'hello')
 
     const BAND = { hasSurvey: false, isWorking: false, maxRows: 6, bodyColumns: 120, scroll: { offset: 0, bodyRows: 6 }, view: {} }
-    const ui = await $.ui.mount({ plugin: 'baton', surface: 'desktop', component: 'AbovePrompt', props: BAND })
+    const ui = await $.ui.mount({ plugin: 'nightshift', surface: 'desktop', component: 'AbovePrompt', props: BAND })
 
     expect((await ui.find({ key: 'tools', type: 'Select' }))?.props.value).toBe('claude')
     await ui.select({ key: 'tools', value: 'codex' })
@@ -570,7 +570,7 @@ describe('the Codex strip dropdowns', () => {
 
     const browser = (await $.tool.call({ tool: 'mcp__Claude_Browser__navigate', url: 'https://example.com' } as never)) as { deny?: string }
 
-    expect(browser.deny).toContain('mcp__baton__codex')
+    expect(browser.deny).toContain('mcp__nightshift__codex')
   })
 })
 
@@ -611,7 +611,7 @@ describe('Codex voice and images', () => {
   test('Talk starts Codex voice, and a spoken exchange lands in the chat without a model', SLOW, async ($, on) => {
     const seen = world(on, 15)
     const BAND = { hasSurvey: false, isWorking: false, maxRows: 6, bodyColumns: 120, scroll: { offset: 0, bodyRows: 6 }, view: {} }
-    const ui = await $.ui.mount({ plugin: 'baton', surface: 'desktop', component: 'AbovePrompt', props: BAND })
+    const ui = await $.ui.mount({ plugin: 'nightshift', surface: 'desktop', component: 'AbovePrompt', props: BAND })
 
     await ui.press({ key: 'talk' })
 
@@ -666,7 +666,7 @@ describe('Codex voice and images', () => {
     seen.images = ['/Users/me/.codex/generated_images/th-1/exec-9.png']
     await ask($, 't0', 'hello')
 
-    const called = (await $.tool.call({ tool: 'mcp__baton__codex', tool_use_id: 'tu-1', prompt: '$imagegen a fox' } as never)) as {
+    const called = (await $.tool.call({ tool: 'mcp__nightshift__codex', tool_use_id: 'tu-1', prompt: '$imagegen a fox' } as never)) as {
       result?: { type: string; text?: string; mimeType?: string }[]
     }
     const content = called.result ?? []
@@ -708,7 +708,7 @@ describe('who does the work you ask for out loud', () => {
     ].join('\n')
 
     const BAND = { hasSurvey: false, isWorking: false, maxRows: 6, bodyColumns: 120, scroll: { offset: 0, bodyRows: 6 }, view: {} }
-    const ui = await $.ui.mount({ plugin: 'baton', surface: 'desktop', component: 'AbovePrompt', props: BAND })
+    const ui = await $.ui.mount({ plugin: 'nightshift', surface: 'desktop', component: 'AbovePrompt', props: BAND })
 
     await ui.press({ key: 'talk' })
 
@@ -737,15 +737,15 @@ describe('Tools set to Codex', () => {
 
     expect(before.deny).toBeUndefined()
 
-    await $.command.run({ command: 'baton', args: 'tools codex' } as never)
+    await $.command.run({ command: 'nightshift', args: 'tools codex' } as never)
 
     const browser = (await $.tool.call({ tool: 'mcp__Claude_Browser__navigate', url: 'https://example.com' } as never)) as { deny?: string }
     const mac = (await $.tool.call({ tool: 'mcp__computer-use__app_click', x: 1 } as never)) as { deny?: string }
 
-    expect(browser.deny).toContain('mcp__baton__codex')
+    expect(browser.deny).toContain('mcp__nightshift__codex')
     expect(mac.deny).toContain('@computer-use')
 
-    await $.command.run({ command: 'baton', args: 'tools claude' } as never)
+    await $.command.run({ command: 'nightshift', args: 'tools claude' } as never)
 
     const after = (await $.tool.call({ tool: 'mcp__Claude_Browser__navigate', url: 'https://example.com' } as never)) as { deny?: string }
 
@@ -770,7 +770,7 @@ describe("Codex in Claude's browser pane", () => {
 
   async function press($: Engine, key: string): Promise<boolean> {
     for (let tries = 0; tries < 100; tries++) {
-      const ui = await $.ui.mount({ plugin: 'baton', surface: 'desktop', component: 'AbovePrompt', props: BAND })
+      const ui = await $.ui.mount({ plugin: 'nightshift', surface: 'desktop', component: 'AbovePrompt', props: BAND })
 
       if ((await ui.find({ key, type: 'Button' })) !== undefined) {
         await ui.press({ key })
@@ -794,7 +794,7 @@ describe("Codex in Claude's browser pane", () => {
 
     seen.awaitsBrowser = true
 
-    const running = $.tool.call({ tool: 'mcp__baton__codex', tool_use_id: 'tu-b', prompt: 'check producthunt' } as never)
+    const running = $.tool.call({ tool: 'mcp__nightshift__codex', tool_use_id: 'tu-b', prompt: 'check producthunt' } as never)
 
     expect(await press($, 'ask-allow')).toBe(true)
     await running
@@ -809,7 +809,7 @@ describe("Codex in Claude's browser pane", () => {
     seen.browserCalls.push(NAVIGATE)
     seen.awaitsBrowser = true
 
-    const running = $.tool.call({ tool: 'mcp__baton__codex', tool_use_id: 'tu-d', prompt: 'check producthunt' } as never)
+    const running = $.tool.call({ tool: 'mcp__nightshift__codex', tool_use_id: 'tu-d', prompt: 'check producthunt' } as never)
 
     expect(await press($, 'ask-deny')).toBe(true)
     await running
@@ -821,10 +821,10 @@ describe("Codex in Claude's browser pane", () => {
     const seen = world(on, 15)
 
     await ask($, 't0', 'hello')
-    await $.command.run({ command: 'baton', args: 'tools auto' } as never)
+    await $.command.run({ command: 'nightshift', args: 'tools auto' } as never)
     seen.browserCalls.push(NAVIGATE)
     seen.awaitsBrowser = true
-    await $.tool.call({ tool: 'mcp__baton__codex', tool_use_id: 'tu-a', prompt: 'check producthunt' } as never)
+    await $.tool.call({ tool: 'mcp__nightshift__codex', tool_use_id: 'tu-a', prompt: 'check producthunt' } as never)
 
     expect(seen.panes).toEqual(['Claude_Browser navigate'])
   })
@@ -851,7 +851,7 @@ describe('a live call stays light', () => {
     ].join('\n')
 
     const BAND = { hasSurvey: false, isWorking: false, maxRows: 6, bodyColumns: 120, scroll: { offset: 0, bodyRows: 6 }, view: {} }
-    const ui = await $.ui.mount({ plugin: 'baton', surface: 'desktop', component: 'AbovePrompt', props: BAND })
+    const ui = await $.ui.mount({ plugin: 'nightshift', surface: 'desktop', component: 'AbovePrompt', props: BAND })
 
     await ui.press({ key: 'talk' })
 

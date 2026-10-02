@@ -123,7 +123,7 @@ function asEffort(value: unknown): CodexEffort | undefined {
 // A small JPEG of a Codex image for its card in the chat.
 async function previewOf($: EngineInterface, path: string): Promise<Preview | undefined> {
   try {
-    const { exitCode, stdout } = await $.process.run(['/bin/zsh', '-c', PREVIEW_SCRIPT, 'baton', path], { timeoutMs: 20000 })
+    const { exitCode, stdout } = await $.process.run(['/bin/zsh', '-c', PREVIEW_SCRIPT, 'nightshift', path], { timeoutMs: 20000 })
 
     return exitCode === 0 ? readPreview(stdout) : undefined
   } catch {
@@ -337,7 +337,7 @@ export const register: Register = on => {
 
   on('session.start', async ($, e, next) => {
     await $.command.register({
-      name: 'baton',
+      name: 'nightshift',
       description: 'Hand the chat to Codex when your Claude limit runs out, or switch by hand',
       argumentHint: 'auto | codex | claude | effort <level> | model <name> | tools codex|claude',
     })
@@ -737,7 +737,7 @@ export const register: Register = on => {
 
   // Claude's `codex` tool: the reply as Codex's card, its images drawn.
   on('ui.render', { component: 'ToolResult' }, ($, e, next) => {
-    const images = e.props.tool === 'mcp__baton__codex' ? (toolImages.get(e.props.tool_use_id) ?? []) : []
+    const images = e.props.tool === 'mcp__nightshift__codex' ? (toolImages.get(e.props.tool_use_id) ?? []) : []
 
     if (e.surface !== 'desktop' || e.props.isErrored || images.length === 0) {
       return next(e)
@@ -779,7 +779,7 @@ export const register: Register = on => {
       return { description: HANDED_TOOL_NOTE, isDeferred: true }
     }
 
-    if (e.tool === 'mcp__baton__codex') {
+    if (e.tool === 'mcp__nightshift__codex') {
       const described = await next(e)
 
       return { ...described, description: `${described.description}${TOOLS_TO_CODEX}`, isDeferred: false }
@@ -842,7 +842,7 @@ export const register: Register = on => {
     }
   }
 
-  on('tool.call', { tool: 'mcp__baton__codex' }, async ($, e) => {
+  on('tool.call', { tool: 'mcp__nightshift__codex' }, async ($, e) => {
     // The tool's arguments ride on the event itself, beside `tool` and its id.
     const input = e as unknown as { prompt?: unknown; images?: unknown }
     const prompt = typeof input.prompt === 'string' ? input.prompt.trim() : ''
@@ -853,7 +853,7 @@ export const register: Register = on => {
     }
 
     // Codex browses in Claude's browser pane, through the bridge, for this run.
-    const socket = `${await privateDir($)}baton-browser-${(await $.clock.now()).toString(36)}.sock`
+    const socket = `${await privateDir($)}nightshift-browser-${(await $.clock.now()).toString(36)}.sock`
     const decider = browserDecider(() => $.ui.invalidate('ui.render'))
     let isRunning = true
     const pump = pumpBrowser($, socket, decider.decide, () => isRunning)
@@ -946,8 +946,8 @@ export const register: Register = on => {
       }
 
       const [cwd, at, dir] = await Promise.all([$.session.cwd(), $.clock.now(), privateDir($)])
-      const socket = `${dir}baton-voice-${at.toString(36)}.sock`
-      const browserSocket = `${dir}baton-browser-${at.toString(36)}v.sock`
+      const socket = `${dir}nightshift-voice-${at.toString(36)}.sock`
+      const browserSocket = `${dir}nightshift-browser-${at.toString(36)}v.sock`
       const run = $.process.spawn({
         argv: voiceArgv($.plugin.root, cwd, socket, voiceWorker, browserSocket, {
           model: codexModel,
@@ -1007,7 +1007,7 @@ export const register: Register = on => {
               void $.prompt.submit({ text: said, asUser: true })
             }
 
-            // A redraw re-runs every Baton row in the chat, so the strip redraws
+            // A redraw re-runs every Nightshift row in the chat, so the strip redraws
             // only when what it shows changes: not for each word of the call.
             const shown = `${talk.phase}|${talk.muted}|${talkState(talk)}`
 
@@ -1045,7 +1045,7 @@ export const register: Register = on => {
           .catch(() => undefined)
       }
     }
-    // End shows at once; if the bridge has not closed in four seconds, Baton
+    // End shows at once; if the bridge has not closed in four seconds, Nightshift
     // leaves its loop, which stops the bridge and everything it runs.
     const endTalk = async () => {
       const run = talkRun
@@ -1268,14 +1268,14 @@ export const register: Register = on => {
     return { text: '' }
   })
 
-  on('command.run', { command: 'baton' }, async ($, e) => {
+  on('command.run', { command: 'nightshift' }, async ($, e) => {
     const arg = e.args.trim().toLowerCase()
     const [verb, value = ''] = arg.split(/\s+/)
 
     if (verb === 'tools') {
       if (value !== 'codex' && value !== 'claude' && value !== 'auto') {
         return {
-          text: `Tools are set to ${toolsWorker === 'claude' ? 'Claude' : browserAccess === 'auto' ? 'Codex, auto' : 'Codex'}. Use /baton tools claude, codex or auto.`,
+          text: `Tools are set to ${toolsWorker === 'claude' ? 'Claude' : browserAccess === 'auto' ? 'Codex, auto' : 'Codex'}. Use /nightshift tools claude, codex or auto.`,
         }
       }
 
@@ -1299,7 +1299,7 @@ export const register: Register = on => {
       const effort = asEffort(value)
 
       if (effort === undefined) {
-        return { text: `Codex effort is ${EFFORT_LABELS[codexEffort]}. Use /baton effort light, medium, high, xhigh or max.` }
+        return { text: `Codex effort is ${EFFORT_LABELS[codexEffort]}. Use /nightshift effort light, medium, high, xhigh or max.` }
       }
 
       codexEffort = effort
@@ -1332,9 +1332,9 @@ export const register: Register = on => {
         $.ui.invalidate('ui.render')
 
       const said = {
-        auto: 'Baton is on auto: Codex answers only while your Claude limit is used up.',
-        codex: 'Codex answers from your next message. /baton auto switches back.',
-        claude: 'Claude answers every message, even past the limit. /baton auto turns the handoff back on.',
+        auto: 'Nightshift is on auto: Codex answers only while your Claude limit is used up.',
+        codex: 'Codex answers from your next message. /nightshift auto switches back.',
+        claude: 'Claude answers every message, even past the limit. /nightshift auto turns the handoff back on.',
       }
 
       return { text: said[arg] }
@@ -1350,7 +1350,7 @@ export const register: Register = on => {
 
     return {
       text: [
-        `Baton is on ${mode}. Commands: /baton auto, /baton codex, /baton claude.`,
+        `Nightshift is on ${mode}. Commands: /nightshift auto, /nightshift codex, /nightshift claude.`,
         '',
         'Claude limits:',
         windows,

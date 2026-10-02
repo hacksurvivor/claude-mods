@@ -9,8 +9,8 @@
   },
   "plugins": [
     {
-      "name": "baton",
-      "source": "./mods/baton",
+      "name": "nightshift",
+      "source": "./mods/nightshift",
       "description": "Codex inside Claude Code: it picks up the chat when your Claude limit runs out, talks with you through Codex's live voice, makes images Claude can ask for, and browses in Claude's browser pane",
       "category": "productivity"
     }

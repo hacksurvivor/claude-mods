@@ -1,16 +1,16 @@
 {
-  "name": "baton",
-  "displayName": "Baton",
-  "version": "0.3.2",
+  "name": "nightshift",
+  "displayName": "Nightshift",
+  "version": "0.4.0",
   "description": "Codex inside Claude Code: it picks up the chat when your Claude limit runs out, talks with you through Codex's live voice, makes images Claude can ask for, and browses in Claude's browser pane",
   "author": {
     "name": "hacksurvivor",
     "url": "https://github.com/hacksurvivor"
   },
-  "homepage": "https://github.com/hacksurvivor/claude-mods/tree/main/mods/baton",
+  "homepage": "https://github.com/hacksurvivor/claude-mods/tree/main/mods/nightshift",
   "repository": "https://github.com/hacksurvivor/claude-mods",
   "license": "Apache-2.0",
-  "privacyPolicyUrl": "https://github.com/hacksurvivor/claude-mods/blob/main/mods/baton/PRIVACY.md",
+  "privacyPolicyUrl": "https://github.com/hacksurvivor/claude-mods/blob/main/mods/nightshift/PRIVACY.md",
   "keywords": [
     "codex",
     "openai",

@@ -7,3 +7,5 @@
 .DS_Store
 # Local search config for graft; not part of the published mods.
 /.ignore
+# Local draft for the directory portal; not published.
+/directory-submission.md

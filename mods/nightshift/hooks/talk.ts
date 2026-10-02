@@ -1,5 +1,5 @@
-// Codex's live voice and its images, as Baton shows them in Claude's window.
-// The voice itself runs in voice.mjs; this is what Baton reads from it, and
+// Codex's live voice and its images, as Nightshift shows them in Claude's window.
+// The voice itself runs in voice.mjs; this is what Nightshift reads from it, and
 // how Codex's pictures become cards in the chat.
 
 /** What the voice bridge says, one JSON line at a time. */
@@ -24,7 +24,7 @@ export function readBridge(line: string): BridgeEvent | undefined {
   }
 }
 
-/** Node through a login shell, as Baton runs codex, so the user's PATH holds. */
+/** Node through a login shell, as Nightshift runs codex, so the user's PATH holds. */
 export function voiceArgv(
   root: string,
   cwd: string,
@@ -75,7 +75,7 @@ export function hear(talk: Talk, event: BridgeEvent): Talk {
 /**
  * The live mark: five bars that move on their own while the call is live and
  * lie flat when muted. It animates inside its own frame, so the app never
- * redraws for it; a redraw re-runs every Baton row in the chat.
+ * redraws for it; a redraw re-runs every Nightshift row in the chat.
  */
 export function liveWave(isMuted: boolean): { source: string; isInteractive: boolean } {
   const heights = [5, 9, 14, 10, 6]
@@ -189,7 +189,7 @@ export function splitImages(markdown: string): { words: string; images: string[]
  * card (a mod's SVG holds 131,072 characters): 640px first, smaller if not.
  */
 export const PREVIEW_SCRIPT =
-  'file=$1; out=$(mktemp -t baton-preview).jpg; ' +
+  'file=$1; out=$(mktemp -t nightshift-preview).jpg; ' +
   "size=$(sips -g pixelWidth -g pixelHeight $file 2>/dev/null | awk '/pixel/{print $2}' | tr '\\n' ' '); " +
   'for spec in "640 72" "512 62" "400 55" "320 50"; do ' +
   'edge=${spec% *}; quality=${spec#* }; ' +
@@ -235,7 +235,7 @@ export function imagesScript(threadId: string, sinceSeconds: number): string[] {
     '/bin/zsh',
     '-c',
     'setopt nullglob; for f in ~/.codex/generated_images/$1/*.png(Om); do (( $(stat -f %m $f) >= $2 )) && print -r -- $f; done',
-    'baton',
+    'nightshift',
     safe,
     String(Math.floor(sinceSeconds)),
   ]
@@ -258,7 +258,7 @@ export const TOOLS_TO_CODEX =
   'computer-use tools are off. Code, files and the shell stay yours.'
 
 export const HANDED_TOOL_NOTE =
-  'Off: the user set Tools to Codex. Do this through mcp__baton__codex instead (begin the prompt with @chrome for ' +
+  'Off: the user set Tools to Codex. Do this through mcp__nightshift__codex instead (begin the prompt with @chrome for ' +
   'the browser, @computer-use for Mac apps).'
 
 export const CODEX_TOOL_SCHEMA = {
@@ -272,10 +272,10 @@ export const CODEX_TOOL_SCHEMA = {
 
 // --- Codex in Claude's browser pane ----------------------------------------
 
-/** One browser step Codex asks for, as the bridge hands it to Baton. */
+/** One browser step Codex asks for, as the bridge hands it to Nightshift. */
 export type BrowserCall = { id: number; tool: string; args: Record<string, unknown> }
 
-/** How much Baton asks before Codex's browser steps run in Claude's pane. */
+/** How much Nightshift asks before Codex's browser steps run in Claude's pane. */
 export type BrowserAccess = 'ask' | 'auto'
 
 /** The step in words, for the Allow / Deny row: "Open producthunt.com". */

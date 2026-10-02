@@ -201,7 +201,7 @@ export function readEvent(line: string): CodexEvent {
   }
 }
 
-/** The command Baton runs: through a login shell, so `codex` and `node` resolve as in a terminal. */
+/** The command Nightshift runs: through a login shell, so `codex` and `node` resolve as in a terminal. */
 export function codexArgv(
   threadId: string | undefined,
   prompt: string,
@@ -232,7 +232,7 @@ export function codexArgv(
 
 /**
  * Claude's browser pane offered to a Codex run: the bridge as an MCP server.
- * Codex does not ask before its tools because Baton asks in Claude instead
+ * Codex does not ask before its tools because Nightshift asks in Claude instead
  * (or not, when the user picked Tools: Codex, auto).
  */
 export function browserConfig(root: string, socket: string): string[] {
@@ -339,7 +339,7 @@ export function windows(fiveHour: number | undefined, week: number | undefined):
   return parts.join(' · ')
 }
 
-/** The script Baton runs to find that line, newest logs first. */
+/** The script Nightshift runs to find that line, newest logs first. */
 // The newest log that has a reading, and its last one: newest file first,
 // since grep would print an older file's lines after a newer one's.
 export const CODEX_LIMITS_SCRIPT =
@@ -381,7 +381,7 @@ export function readCodexDefaults(toml: string): { model?: string; effort?: stri
   return { model: value('model'), effort: value('model_reasoning_effort') }
 }
 
-// Only the two top-level settings Baton uses leave config.toml: the file can
+// Only the two top-level settings Nightshift uses leave config.toml: the file can
 // hold other tools' secrets further down.
 export const CODEX_SETUP_SCRIPT =
   'cat ~/.codex/models_cache.json 2>/dev/null; printf "\\n@@config@@\\n"; ' +

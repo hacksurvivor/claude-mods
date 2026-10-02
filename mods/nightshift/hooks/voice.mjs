@@ -1,9 +1,9 @@
-// Baton's voice bridge: Codex's live voice in Claude's window.
+// Nightshift's voice bridge: Codex's live voice in Claude's window.
 //
 // It runs the two pieces the Codex CLI's own /voice runs: `codex app-server`
 // (JSON-RPC over stdio, on the user's own Codex login) and the voice helper
 // bundled with Codex, which owns WebRTC, the mic and the speaker. Audio never
-// passes through here. It reports to Baton as JSON lines on stdout and takes
+// passes through here. It reports to Nightshift as JSON lines on stdout and takes
 // Mute and End over HTTP on a Unix socket.
 //
 //   node voice.mjs <cwd> <socket> <codex|claude> <browser socket> <model|-> <effort|->
@@ -13,7 +13,7 @@
 // {t:'claude',task,you}: work the user wants Claude to do; Codex's run of it is stopped.
 //
 // Codex does the work it is handed, unless the user says Claude should (or
-// picked Claude for all of it): then Baton hands the task to Claude, and reads
+// picked Claude for all of it): then Nightshift hands the task to Claude, and reads
 // Claude's answer back through /speak.
 
 import { spawn, execFileSync } from 'node:child_process'
@@ -27,8 +27,8 @@ const model = modelArg === '-' ? undefined : modelArg
 // own default applies, which can be far slower than a spoken task wants.
 const effort = effortArg === '-' ? undefined : effortArg
 
-// Claude's browser pane for the voice's Codex turns, as Baton's codex tool has
-// it: Codex does not ask before its steps; Baton asks in Claude.
+// Claude's browser pane for the voice's Codex turns, as Nightshift's codex tool has
+// it: Codex does not ask before its steps; Nightshift asks in Claude.
 const BROWSER =
   browserSocket === '-'
     ? []
@@ -207,7 +207,7 @@ function answerServer(message) {
         : undefined
 
   app.stdin.write(
-    `${JSON.stringify(result ? { id: message.id, result } : { id: message.id, error: { code: -32601, message: 'not handled by Baton' } })}\n`,
+    `${JSON.stringify(result ? { id: message.id, result } : { id: message.id, error: { code: -32601, message: 'not handled by Nightshift' } })}\n`,
   )
 }
 
@@ -503,7 +503,7 @@ try {
   const offer = await expectHost({ type: 'startTransport' }, 'offer', 20000)
 
   await call('initialize', {
-    clientInfo: { name: 'baton', title: 'Baton for Claude Code', version: '0.2.0' },
+    clientInfo: { name: 'nightshift', title: 'Nightshift for Claude Code', version: '0.2.0' },
     capabilities: { experimentalApi: true },
   })
   app.stdin.write(`${JSON.stringify({ method: 'initialized' })}\n`)
@@ -533,8 +533,8 @@ try {
 
   await expectHost({ type: 'applyAnswer', sdp }, 'transportReady', 25000)
   // Opening the devices is when macOS asks for the microphone, the first time.
-  // BATON_VOICE_DRY connects without them, for checks that must not record.
-  if (!process.env.BATON_VOICE_DRY) {
+  // NIGHTSHIFT_VOICE_DRY connects without them, for checks that must not record.
+  if (!process.env.NIGHTSHIFT_VOICE_DRY) {
     await expectHost({ type: 'openDevices' }, 'devicesOpened', 30000)
     await expectHost(
       { type: 'setAudioControls', controls: { microphoneMuted: false, speakerSuppressed: false } },

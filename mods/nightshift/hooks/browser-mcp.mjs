@@ -1,14 +1,14 @@
 // Claude's browser pane, offered to Codex as an MCP server.
 //
-// Codex starts this as a stdio MCP server for a run Baton hands it. Each tool
-// call Codex makes waits here until Baton, polling the Unix socket below,
+// Codex starts this as a stdio MCP server for a run Nightshift hands it. Each tool
+// call Codex makes waits here until Nightshift, polling the Unix socket below,
 // carries it out in the Claude app's own browser pane ($.mcp.call on
 // Claude_Browser) and posts the result back. So the user watches Codex browse
 // where Claude would have.
 //
 //   node browser-mcp.mjs <socket>
 //
-// Baton's side: GET /next (a call, or 204 after 20 s), POST /result {id, result}.
+// Nightshift's side: GET /next (a call, or 204 after 20 s), POST /result {id, result}.
 
 import { createServer } from 'node:http'
 import { rmSync } from 'node:fs'
@@ -92,7 +92,7 @@ const TOOLS = [
   },
 ]
 
-// --- calls waiting for Baton ------------------------------------------------
+// --- calls waiting for Nightshift ------------------------------------------------
 
 let nextId = 1
 const queue = []
@@ -184,7 +184,7 @@ const reply = message => process.stdout.write(`${JSON.stringify({ jsonrpc: '2.0'
 function runTool(name, args) {
   return new Promise(resolve => {
     const id = nextId++
-    // Baton answers in seconds; past two minutes it is gone.
+    // Nightshift answers in seconds; past two minutes it is gone.
     const timer = setTimeout(() => {
       waiting.delete(id)
       resolve({ content: [{ type: 'text', text: "Claude's browser pane did not answer." }], isError: true })
