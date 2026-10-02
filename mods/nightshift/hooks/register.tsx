@@ -975,11 +975,15 @@ export const register: Register = on => {
       $.ui.invalidate('ui.render')
     })
 
-    // Blocks the engine hands the model as they are: the text, then each image.
+    // Blocks the model reads as they are, so each image is an API image block
+    // (base64 source); the MCP shape ({ data, mimeType }) reaches the API empty.
     return {
       result: [
         { type: 'text', text: ran.text },
-        ...ran.previews.map(preview => ({ type: 'image', data: preview.data, mimeType: 'image/jpeg' })),
+        ...ran.previews.map(preview => ({
+          type: 'image',
+          source: { type: 'base64', media_type: 'image/jpeg', data: preview.data },
+        })),
       ],
     }
   })

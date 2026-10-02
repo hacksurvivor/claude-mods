@@ -677,13 +677,17 @@ describe('Codex voice and images', () => {
     await ask($, 't0', 'hello')
 
     const called = (await $.tool.call({ tool: 'mcp__nightshift__codex', tool_use_id: 'tu-1', prompt: '$imagegen a fox' } as never)) as {
-      result?: { type: string; text?: string; mimeType?: string }[]
+      result?: { type: string; text?: string; source?: { type: string; media_type: string; data: string } }[]
     }
     const content = called.result ?? []
+    const image = content.find(block => block.type === 'image')
 
     expect(content[0]?.text).toContain('Added a test. 42 passed.')
     expect(content[0]?.text).toContain('/Users/me/.codex/generated_images/th-1/exec-9.png')
-    expect(content.some(block => block.type === 'image' && block.mimeType === 'image/jpeg')).toBe(true)
+    // The API's own image block: a base64 source with its media type and bytes.
+    expect(image?.source?.type).toBe('base64')
+    expect(image?.source?.media_type).toBe('image/jpeg')
+    expect(image?.source?.data.length).toBeGreaterThan(100)
   })
 })
 

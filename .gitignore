@@ -9,3 +9,5 @@
 /.ignore
 # Local draft for the directory portal; not published.
 /directory-submission.md
+# Code-index caches anywhere in the tree.
+graft/
