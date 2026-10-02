@@ -73,7 +73,7 @@ Data leaves your computer only through the Codex CLI, to OpenAI, as listed above
 
 ### Tools it calls itself
 
-While a Codex run or a call that Nightshift started is going, Nightshift calls the tools of Claude's browser pane (`navigate`, `get_page_text`, `read_page`, `find`, `computer`, `form_input`, `tabs_context`, `tabs_create`) on Codex's behalf: one call for each step Codex asks for, asked or not as described above. It calls no other tools.
+While a Codex run or a call that Nightshift started is going, Nightshift calls the tools of Claude's browser pane (`navigate`, `get_page_text`, `read_page`, `find`, `computer`, `form_input`, `tabs_context`, `tabs_create`) on Codex's behalf: one call for each step Codex asks for, asked or not as described above. Before Codex's first step and each page it opens, Nightshift also calls `tabs_context` to see whether you can watch: if the pane isn't open, it opens Codex's page with `preview_start`, which shows the pane; if the pane is hidden behind something else, it shows a toast saying ⌘⇧B brings it back. It calls no other tools.
 
 ### Prompts it submits
 

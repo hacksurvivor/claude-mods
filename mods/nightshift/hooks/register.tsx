@@ -200,12 +200,28 @@ async function runCodexTool(
 // While a Codex run lasts, carries each of its browser steps into Claude's
 // browser pane: the bridge holds the step, `decide` says whether it may run,
 // and the pane's own tool does it.
+// Whether Claude's browser pane is showing: it reports "displayed", "hidden"
+// (something else fills the side panel) or not open yet.
+async function paneState($: EngineInterface): Promise<PaneState> {
+  try {
+    const { content } = await $.mcp.call('Claude_Browser', 'tabs_context', {})
+    const text = content.map(block => (block.type === 'text' ? block.text : '')).join('\n')
+
+    return /isn.t open|not open|browserOpen"?\s*:\s*false/i.test(text) ? 'closed' : /\bhidden\b/i.test(text) ? 'hidden' : 'shown'
+  } catch {
+    return 'shown'
+  }
+}
+
 async function pumpBrowser(
   $: EngineInterface,
   socket: string,
   decide: (call: BrowserCall) => Promise<boolean>,
   isRunning: () => boolean,
+  onPane: (state: PaneState) => void,
 ): Promise<void> {
+  let isChecked = false
+
   while (isRunning()) {
     let call: BrowserCall | undefined
 
@@ -223,8 +239,27 @@ async function pumpBrowser(
       continue
     }
 
+    // Before Codex's first step and each page it opens, see whether you can
+    // watch: a closed pane opens at the page (navigate alone would not show
+    // it); a hidden one is yours to bring back, so Nightshift says how.
+    let tool = call.tool
+    let args = call.args
+
+    if (!isChecked || call.tool === 'navigate') {
+      isChecked = true
+
+      const state = await paneState($)
+
+      onPane(state)
+
+      if (state === 'closed' && call.tool === 'navigate' && typeof call.args.url === 'string' && /^https?:/.test(call.args.url)) {
+        tool = 'preview_start'
+        args = { url: call.args.url }
+      }
+    }
+
     const result = (await decide(call))
-      ? await $.mcp.call('Claude_Browser', call.tool, call.args).catch((error: unknown) => ({
+      ? await $.mcp.call('Claude_Browser', tool, args).catch((error: unknown) => ({
           content: [{ type: 'text', text: `Claude's browser pane refused: ${error instanceof Error ? error.message : String(error)}` }],
           isError: true,
         }))
@@ -238,6 +273,8 @@ async function pumpBrowser(
       .catch(() => undefined)
   }
 }
+
+type PaneState = 'closed' | 'hidden' | 'shown'
 
 // The user's own temp folder for the helpers' sockets (macOS gives each user
 // one), so no other account on the machine can reach them.
@@ -297,6 +334,28 @@ export const register: Register = on => {
   // Codex's steps in Claude's browser pane: asked here first, or run as they come.
   let browserAccess: BrowserAccess = 'ask'
   const asks: { call: BrowserCall; answer: (allowed: boolean) => void; allowRest: () => void }[] = []
+  // Whether Claude's browser pane is hidden while Codex browses in it.
+  let isPaneHidden = false
+  // Says once per run when Codex browses where you can't see it; the strip
+  // and the Allow row show the same hint until the pane is back.
+  const paneWatcher = (toast: (text: string) => void, redraw: () => void) => {
+    let isTold = false
+
+    return (state: 'closed' | 'hidden' | 'shown') => {
+      const wasHidden = isPaneHidden
+
+      isPaneHidden = state === 'hidden'
+
+      if (isPaneHidden && !isTold) {
+        isTold = true
+        toast("Codex is browsing in Claude's browser. Press ⌘⇧B to watch.")
+      }
+
+      if (wasHidden !== isPaneHidden) {
+        redraw()
+      }
+    }
+  }
   const claudeTasks = new Set<string>()
   let talkRun: ReturnType<EngineInterface['process']['spawn']> | undefined
   // Codex's one-off runs: `/codex <prompt>`, answered by Codex whatever the mode.
@@ -877,7 +936,16 @@ export const register: Register = on => {
     const socket = `${await privateDir($)}nightshift-browser-${(await $.clock.now()).toString(36)}.sock`
     const decider = browserDecider(() => $.ui.invalidate('ui.render'))
     let isRunning = true
-    const pump = pumpBrowser($, socket, decider.decide, () => isRunning)
+    const pump = pumpBrowser(
+      $,
+      socket,
+      decider.decide,
+      () => isRunning,
+      paneWatcher(
+        text => $.ui.toast(text, { timeoutMs: 8000 }),
+        () => $.ui.invalidate('ui.render'),
+      ),
+    )
     let ran: Awaited<ReturnType<typeof runCodexTool>>
 
     try {
@@ -980,7 +1048,16 @@ export const register: Register = on => {
       // What Codex browses while you talk shows in Claude's browser pane too.
       const decider = browserDecider(() => $.ui.invalidate('ui.render'))
       let isTalking = true
-      const pump = pumpBrowser($, browserSocket, decider.decide, () => isTalking)
+      const pump = pumpBrowser(
+        $,
+        browserSocket,
+        decider.decide,
+        () => isTalking,
+        paneWatcher(
+          text => $.ui.toast(text, { timeoutMs: 8000 }),
+          () => $.ui.invalidate('ui.render'),
+        ),
+      )
       let pending = ''
       let failure: string | undefined
       let drawn = ''
@@ -1175,6 +1252,7 @@ export const register: Register = on => {
                 <Text dimColor wrap="truncate-end">
                   {browserStep(ask.call)}
                   {asks.length > 1 ? ` · ${asks.length - 1} more waiting` : ''}
+                  {isPaneHidden ? ' · ⌘⇧B shows the browser' : ''}
                 </Text>
               </Box>
               <Box flexDirection="row" alignItems="center" gap={2} flexShrink={0}>

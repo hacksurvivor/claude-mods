@@ -126,10 +126,11 @@ type World = {
   awaitsBrowser: boolean
   results: string[]
   panes: string[]
+  pane: 'shown' | 'hidden' | 'closed'
 }
 
 function world(on: On, percentUsed: number): World {
-  const seen: World = { claude: 0, spawned: [], notices: [], statuses: [], limitsLine: CODEX_LIMITS_LINE, setNow: async () => {}, images: [], submitted: [], voiceRun: VOICE_RUN, spoke: [], browserCalls: [], awaitsBrowser: false, results: [], panes: [] }
+  const seen: World = { claude: 0, spawned: [], notices: [], statuses: [], limitsLine: CODEX_LIMITS_LINE, setNow: async () => {}, images: [], submitted: [], voiceRun: VOICE_RUN, spoke: [], browserCalls: [], awaitsBrowser: false, results: [], panes: [], pane: 'shown' }
   const usage: SessionUsage = {
     startedAt: NOW,
     context: { window: 200000 },
@@ -207,6 +208,15 @@ function world(on: On, percentUsed: number): World {
     return { value: { status: 200, ok: true, headers: {}, text: 'ok' } }
   })
   on('mcp.call', ($, e) => {
+    if (e.tool === 'tabs_context') {
+      const text =
+        seen.pane === 'closed'
+          ? "The Browser pane isn't open yet, so there are no tabs."
+          : `1 tab. The Browser pane is ${seen.pane === 'hidden' ? 'hidden' : 'displayed'}.`
+
+      return { value: { content: [{ type: 'text', text }], isError: false } }
+    }
+
     seen.panes.push(`${e.server} ${e.tool}`)
 
     return { value: { content: [{ type: 'text', text: 'Product Hunt' }], isError: false } }
@@ -974,5 +984,36 @@ describe("Codex's voice, live in the chat", () => {
 
     await ask($, 'tc2', 'Fix the footer')
     expect(seen.claude).toBe(1)
+  })
+})
+
+describe("Claude's browser pane while Codex browses", () => {
+  const NAVIGATE = JSON.stringify({ id: 1, tool: 'navigate', args: { url: 'https://www.producthunt.com/' } })
+
+  test('a closed pane opens at the page Codex goes to, so you see it', SLOW, async ($, on) => {
+    const seen = world(on, 15)
+
+    seen.pane = 'closed'
+    await ask($, 't0', 'hello')
+    await $.command.run({ command: 'nightshift', args: 'tools auto' } as never)
+    seen.browserCalls.push(NAVIGATE)
+    seen.awaitsBrowser = true
+    await $.tool.call({ tool: 'mcp__nightshift__codex', tool_use_id: 'tu-o', prompt: 'check producthunt' } as never)
+
+    expect(seen.panes).toEqual(['Claude_Browser preview_start'])
+  })
+
+  test('a hidden pane gets a toast saying how to watch', SLOW, async ($, on) => {
+    const seen = world(on, 15)
+
+    seen.pane = 'hidden'
+    await ask($, 't0', 'hello')
+    await $.command.run({ command: 'nightshift', args: 'tools auto' } as never)
+    seen.browserCalls.push(NAVIGATE)
+    seen.awaitsBrowser = true
+    await $.tool.call({ tool: 'mcp__nightshift__codex', tool_use_id: 'tu-h', prompt: 'check producthunt' } as never)
+
+    expect(seen.panes).toEqual(['Claude_Browser navigate'])
+    expect(seen.notices.some(text => text.includes('⌘⇧B'))).toBe(true)
   })
 })
