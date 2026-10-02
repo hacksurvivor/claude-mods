@@ -198,7 +198,7 @@ function world(on: On, percentUsed: number): World {
       return { value: { status: call === undefined ? 204 : 200, ok: true, headers: {}, text: call ?? '' } }
     }
 
-    if (e.url.includes('/result/')) {
+    if (e.url.endsWith('/result')) {
       seen.results.push(String(e.init?.body ?? ''))
     } else {
       seen.spoke.push(`${e.url} ${e.init?.body ?? ''}`)

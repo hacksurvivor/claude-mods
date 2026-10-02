@@ -46,6 +46,58 @@ Baton is open about everything it does on your machine and what leaves it:
 - **During voice**, a permission request from Codex that your own Codex hooks don't answer is declined, so a call never waits on a prompt you can't see.
 - **It keeps your choices** (mode, model, effort, who works, Tools) in Claude Code's plugin store.
 
+## How Baton works, call by call
+
+### Programs it runs
+
+All on your computer. Nothing is downloaded or installed, and no package manager runs.
+
+| Program | When | Why |
+| --- | --- | --- |
+| `codex exec --json …` and `codex exec resume …`, through `/bin/zsh -lc 'exec codex "$@"'` | When Codex picks up the chat, for `/codex`, and when Claude calls the `codex` tool | To have Codex do the work. The login shell finds `codex` on your `PATH` the way your terminal does. The arguments are fixed apart from the prompt, the Codex model and effort, images you attach, and the settings that connect Codex to the browser bridge. |
+| `node hooks/voice.mjs`, through `/bin/zsh -lc 'exec node "$@"'` | While Talk is on | The voice bridge. It runs `codex app-server` and the voice helper that ships with the Codex CLI. |
+| `node hooks/browser-mcp.mjs` | Started by Codex during runs Baton begins | The browser bridge: Codex's way into Claude's browser pane. |
+| `/bin/zsh -c` with `ls`, `grep` and `tail` | At session start, after each Codex run, and every 5 minutes | To read the newest usage-limit line from `~/.codex/sessions`, for the 7-day meter. |
+| `/bin/zsh -c` with `cat` and `awk` | At session start | To read Codex's model list and the two settings it uses (default model and effort) from `~/.codex`. |
+| `/bin/zsh -c` with `stat`, and `sips` with `base64` | After a Codex run that made images | To find the PNGs Codex saved for that run and make small JPEG previews (in a temporary file deleted right after). |
+| `/usr/bin/getconf DARWIN_USER_TEMP_DIR` | When a bridge starts | To find your private temp folder for the bridges' sockets. |
+
+### Requests it makes
+
+Baton's own requests (`$.http.fetch`) go only to `http://localhost`, over Unix sockets in your private temp folder, to its two bridges. They never leave your computer:
+
+- Browser bridge: `GET /next` (the next step Codex asks for) and `POST /result` (its result).
+- Voice bridge: `POST /mute`, `POST /end`, `POST /route` (Codex or Claude does the work) and `POST /speak` (Claude's answer, for the voice to read out).
+
+Data leaves your computer only through the Codex CLI, to OpenAI, as listed above.
+
+### Tools it calls itself
+
+While a Codex run or a call that Baton started is going, Baton calls the tools of Claude's browser pane (`navigate`, `get_page_text`, `read_page`, `find`, `computer`, `form_input`, `tabs_context`, `tabs_create`) on Codex's behalf: one call for each step Codex asks for, asked or not as described above. It calls no other tools.
+
+### Prompts it submits
+
+- **A voice exchange:** what you said, as a chat row. Baton answers it with Codex's spoken reply and images, and no model runs.
+- **Work you pass to Claude by voice:** the task as Codex's voice wrote it. Claude then does the work.
+- **`/codex <prompt>`:** your prompt, and Codex answers it.
+- **A message that hit Claude's limit mid-reply (auto mode):** your last message again, so Codex can answer it.
+
+When Claude answers again after Codex covered for it, Baton adds one note to Claude's context. The note says how many messages Codex answered and which files it changed.
+
+### Hooks and what they change
+
+- `session.start`: registers `/baton`, `/codex` and the `codex` tool, and reads your settings and Codex's limits.
+- `prompt.submit`: adds the note above when Claude takes back over from Codex. Everything else passes through unchanged.
+- `turn.start`, `turn.step`, `turn.complete`: when Codex covers for Claude, or a voice exchange is kept, `turn.step` answers the turn itself instead of Claude. Otherwise the turn goes to Claude unchanged. `turn.complete` sends Claude's answer to the voice for work you passed to Claude, and retries a limit-hit message with Codex.
+- `tool.call`: answers Baton's own `codex` tool. When Tools is set to Codex, it refuses calls to Claude's browser tools (`mcp__Claude_Browser__*`, `mcp__claude-in-chrome__*`) and computer-use tools (`mcp__computer-use__*`), telling Claude to use Codex instead. Every other tool call passes through unchanged.
+- `tool.describe`: only when Tools is set to Codex. It describes those same browser and computer-use tools as off and moves them behind tool search, and adds to the `codex` tool's description that it takes that work.
+- `ui.render`: draws the strip, Codex's replies, voice rows, image cards and the Allow row. It changes nothing else.
+- `command.run`: serves `/baton` and `/codex`.
+
+### Credentials
+
+Baton uses your Codex login only by running the Codex CLI. It never reads, stores or sends a credential, so there is no key or token to configure.
+
 ## Notes
 
 - Voice drives the private voice helper bundled with the Codex CLI, whose protocol is tied to the exact Codex build. A Codex update can break voice until Baton is updated; everything else keeps working.

@@ -1,7 +1,7 @@
 {
   "name": "baton",
   "displayName": "Baton",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Codex inside Claude Code: it picks up the chat when your Claude limit runs out, talks with you through Codex's live voice, makes images Claude can ask for, and browses in Claude's browser pane",
   "author": {
     "name": "hacksurvivor",
@@ -10,5 +10,13 @@
   "homepage": "https://github.com/hacksurvivor/claude-mods/tree/main/mods/baton",
   "repository": "https://github.com/hacksurvivor/claude-mods",
   "license": "Apache-2.0",
-  "keywords": ["codex", "openai", "usage-limits", "voice", "image-generation", "browser"]
+  "privacyPolicyUrl": "https://github.com/hacksurvivor/claude-mods/blob/main/mods/baton/PRIVACY.md",
+  "keywords": [
+    "codex",
+    "openai",
+    "usage-limits",
+    "voice",
+    "image-generation",
+    "browser"
+  ]
 }

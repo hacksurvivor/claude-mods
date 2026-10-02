@@ -446,8 +446,15 @@ function serve() {
   rmSync(socketPath, { force: true })
   server = createServer(async (request, response) => {
     try {
-      if (request.url?.startsWith('/mute')) {
-        muted = request.url.includes('on=1')
+      const body = await new Promise(resolve => {
+        let text = ''
+
+        request.on('data', chunk => (text += chunk))
+        request.on('end', () => resolve(text))
+      })
+
+      if (request.url === '/mute') {
+        muted = body === 'on'
 
         if (devicesOpen) {
           await expectHost(
@@ -456,21 +463,14 @@ function serve() {
             5000,
           )
         }
-      } else if (request.url?.startsWith('/end')) {
+      } else if (request.url === '/end') {
         void finish()
-      } else if (request.url?.startsWith('/route')) {
-        worker = request.url.includes('to=claude') ? 'claude' : 'codex'
+      } else if (request.url === '/route') {
+        worker = body === 'claude' ? 'claude' : 'codex'
         await call('thread/realtime/appendText', { threadId, text: workerNote(), role: 'developer' })
-      } else if (request.url?.startsWith('/speak')) {
-        const text = await new Promise(resolve => {
-          let body = ''
-
-          request.on('data', chunk => (body += chunk))
-          request.on('end', () => resolve(body))
-        })
-
-        if (phase === 'live' && text.trim() !== '') {
-          await call('thread/realtime/appendSpeech', { threadId, text: `Claude says: ${text.trim()}` })
+      } else if (request.url === '/speak') {
+        if (phase === 'live' && body.trim() !== '') {
+          await call('thread/realtime/appendSpeech', { threadId, text: `Claude says: ${body.trim()}` })
         }
       }
 

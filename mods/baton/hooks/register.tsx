@@ -209,7 +209,7 @@ async function pumpBrowser(
     let call: BrowserCall | undefined
 
     try {
-      const next = await $.http.fetch('http://baton/next', { method: 'GET', socketPath: socket })
+      const next = await $.http.fetch('http://localhost/next', { method: 'GET', socketPath: socket })
 
       call = next.status === 200 ? readCall(next.text) : undefined
     } catch {
@@ -233,16 +233,16 @@ async function pumpBrowser(
         }
 
     await $.http
-      .fetch(`http://baton/result/${call.id}`, { method: 'POST', socketPath: socket, body: JSON.stringify(result) })
+      .fetch('http://localhost/result', { method: 'POST', socketPath: socket, body: JSON.stringify({ id: call.id, result }) })
       .catch(() => undefined)
   }
 }
 
-// The user's own temp folder for the helpers' sockets ($TMPDIR on macOS is
-// per user), so no other account on the machine can reach them.
+// The user's own temp folder for the helpers' sockets (macOS gives each user
+// one), so no other account on the machine can reach them.
 async function privateDir($: EngineInterface): Promise<string> {
   try {
-    const { stdout } = await $.process.run(['/bin/sh', '-c', 'printf %s "${TMPDIR:-/tmp}"'], { timeoutMs: 5000 })
+    const { stdout } = await $.process.run(['/usr/bin/getconf', 'DARWIN_USER_TEMP_DIR'], { timeoutMs: 5000 })
     const dir = stdout.trim()
 
     return dir.startsWith('/') ? dir.replace(/\/?$/, '/') : '/tmp/'
@@ -628,7 +628,7 @@ export const register: Register = on => {
     // Work you passed to Claude by voice: its answer goes back to the voice.
     if (asked !== undefined && claudeTasks.delete(asked) && talkSocket !== undefined && e.answer.trim() !== '') {
       void $.http
-        .fetch('http://baton/speak', { method: 'POST', socketPath: talkSocket, body: speakable(e.answer) })
+        .fetch('http://localhost/speak', { method: 'POST', socketPath: talkSocket, body: speakable(e.answer) })
         .catch(() => undefined)
     }
 
@@ -1033,21 +1033,17 @@ export const register: Register = on => {
         $.ui.toast(`Codex voice stopped: ${failure}`)
       }
     }
-    const tellBridge = async (path: string) => {
-      if (talkSocket === undefined) {
-        return
-      }
-
-      try {
-        await $.http.fetch(`http://baton${path}`, { method: 'POST', socketPath: talkSocket })
-      } catch {
-        // The bridge ends on its own if it is gone; the loop resets the strip.
-      }
-    }
+    // The voice bridge's three controls, each one fixed local address on its
+    // Unix socket; a bridge that is already gone ends the loop on its own.
     const toggleMute = async () => {
       talk = { ...talk, muted: !talk.muted }
       $.ui.invalidate('ui.render')
-      await tellBridge(`/mute?on=${talk.muted ? 1 : 0}`)
+
+      if (talkSocket !== undefined) {
+        await $.http
+          .fetch('http://localhost/mute', { method: 'POST', socketPath: talkSocket, body: talk.muted ? 'on' : 'off' })
+          .catch(() => undefined)
+      }
     }
     // End shows at once; if the bridge has not closed in four seconds, Baton
     // leaves its loop, which stops the bridge and everything it runs.
@@ -1056,7 +1052,10 @@ export const register: Register = on => {
 
       talk = { ...talk, phase: 'ending' }
       $.ui.invalidate('ui.render')
-      await tellBridge('/end')
+      if (talkSocket !== undefined) {
+        await $.http.fetch('http://localhost/end', { method: 'POST', socketPath: talkSocket }).catch(() => undefined)
+      }
+
       $.clock.after(4000, () => {
         if (talkRun !== undefined && talkRun === run) {
           void run?.return({ code: null, signal: 'SIGTERM' } as never)
@@ -1075,7 +1074,11 @@ export const register: Register = on => {
     const pickWorker = async (worker: Worker) => {
       voiceWorker = worker
       $.ui.invalidate('ui.render')
-      await Promise.all([$.store.set('voiceWorker', worker), tellBridge(`/route?to=${worker}`)])
+      await $.store.set('voiceWorker', worker)
+
+      if (talkSocket !== undefined) {
+        await $.http.fetch('http://localhost/route', { method: 'POST', socketPath: talkSocket, body: worker }).catch(() => undefined)
+      }
     }
 
     // Only real controls: effort and model dropdowns, the limit meter, the

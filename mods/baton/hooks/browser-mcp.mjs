@@ -8,7 +8,7 @@
 //
 //   node browser-mcp.mjs <socket>
 //
-// Baton's side: GET /next (a call, or 204 after 20 s), POST /result/<id>.
+// Baton's side: GET /next (a call, or 204 after 20 s), POST /result {id, result}.
 
 import { createServer } from 'node:http'
 import { rmSync } from 'node:fs'
@@ -136,17 +136,20 @@ const server = createServer((request, response) => {
     return
   }
 
-  const done = /^\/result\/(\d+)$/.exec(request.url ?? '')
-
-  if (request.method === 'POST' && done) {
+  if (request.method === 'POST' && request.url === '/result') {
     let body = ''
 
     request.on('data', chunk => (body += chunk))
     request.on('end', () => {
-      const id = Number(done[1])
+      try {
+        const { id, result } = JSON.parse(body)
 
-      waiting.get(id)?.(body)
-      waiting.delete(id)
+        waiting.get(id)?.(JSON.stringify(result))
+        waiting.delete(id)
+      } catch {
+        // A malformed answer is dropped; the step times out for Codex.
+      }
+
       response.end('ok')
     })
     return
