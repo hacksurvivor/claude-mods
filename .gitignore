@@ -2,6 +2,10 @@
 /graft/
 # Only Relay is published; the effort router stays local.
 /mods/effort-router/
+# Personal mods with account and client details stay local.
+/mods/account-guard/
+/mods/scoreboard/
+/mods/third-eye/
 # Generated mod type definitions.
 .claude-plugin/types/
 .DS_Store
