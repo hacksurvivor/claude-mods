@@ -291,6 +291,15 @@ async function privateDir($: EngineInterface): Promise<string> {
 
 // The strip's limit meter: room for 8px tiles, two a day, and the reset time.
 const STRIP_METER_WIDTH = 300
+// Under this much of the week left, the strip's button shows the number.
+const LOW_WEEK_LEFT = 20
+
+// "Codex Light", with the week left once it runs low.
+function stripLabel(effort: CodexEffort, left: number | undefined): string {
+  const low = left !== undefined && left < LOW_WEEK_LEFT ? ` · ${left}%` : ''
+
+  return `Codex ${EFFORT_LABELS[effort]}${low}`
+}
 
 // The key a finished reply's meta line is kept under until it is drawn.
 function keyOf(text: string): string {
@@ -321,6 +330,9 @@ export const register: Register = on => {
   // Codex's live voice: the strip's state, the bridge's socket, and each spoken
   // exchange waiting to be kept in the chat as your words and Codex's reply.
   let talk: Talk = QUIET
+  // The strip above the box opens from its button in the footer; it also
+  // shows by itself while Codex works, talks, asks, or stands in for Claude.
+  let isStripOpen = false
   let talkSocket: string | undefined
   // Codex's spoken replies, each waiting for its chat row by the words that open it.
   const feeds = new Map<string, VoiceFeed[]>()
@@ -1011,6 +1023,14 @@ export const register: Register = on => {
     const isClaudeOut = lastOut !== undefined && (lastOut.resetsAt === undefined || Date.parse(lastOut.resetsAt) > now)
     const note = mode === 'auto' && isClaudeOut ? `Claude back ${resetLabel(lastOut?.resetsAt)}` : undefined
     const weekReset = weekResetsAt === undefined ? undefined : resetLabel(new Date(weekResetsAt).toISOString())
+    if (!isStripOpen && !isWorking && talk.phase === 'off' && asks.length === 0 && mode !== 'codex' && note === undefined) {
+      return next(e)
+    }
+
+    const closeStrip = () => {
+      isStripOpen = false
+      $.ui.invalidate('ui.render')
+    }
     const back = () => {
       mode = 'auto'
       isCodexOn = lastOut !== undefined
@@ -1369,6 +1389,7 @@ export const register: Register = on => {
               onSelect={pickTools}
             />
             <Button key="talk" label="Talk" onPress={startTalk} />
+            {isStripOpen && <Button key="close" role="dismiss" plain dimColor label="Close" onPress={closeStrip} />}
           </Box>
         </Box>
       )
@@ -1401,6 +1422,30 @@ export const register: Register = on => {
         )}
         {talk.phase === 'live' && <Button key="mute" plain label={talk.muted ? 'Unmute' : 'Mute'} hotkey="m" onPress={toggleMute} />}
         {talk.phase !== 'off' && <Button key="end" plain label="End" hotkey="e" onPress={endTalk} />}
+        {isStripOpen && <Button key="close" plain dimColor label="Close" hotkey="x" onPress={closeStrip} />}
+      </Box>
+    )
+  })
+
+  // In the footer under the box, beside the mode labels: "Codex Light" opens
+  // and closes the strip. The week left shows only once it runs under 20%.
+  on('ui.render', { component: 'SessionMode' }, async ($, e, next) => {
+    const drawn = await next(e)
+    const { week } = currentWeek(codexLimits, await $.clock.now())
+    const left = week === undefined ? undefined : 100 - Math.round(week)
+    const toggle = () => {
+      isStripOpen = !isStripOpen
+      $.ui.invalidate('ui.render')
+    }
+    const { Box, Button } = $.ui.resolve(e)
+
+    return (
+      <Box flexDirection="row" gap={2}>
+        {drawn}
+        {/* Centred in a box of its own, or the desktop's footer clips the label's descenders. */}
+        <Box flexDirection="row" alignItems="center">
+          <Button key="codex-strip" plain label={stripLabel(effortWithin(codexEffort, offered()), left)} onPress={toggle} />
+        </Box>
       </Box>
     )
   })

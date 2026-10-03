@@ -10,6 +10,22 @@ declare const setTimeout: (run: (value: unknown) => void, ms: number) => unknown
 
 // Engine tests run real dispatches; give them room on a busy machine.
 const SLOW = { timeoutMs: 30000 }
+const FOOTER = { modes: [] as string[] }
+const STRIP_BAND = { hasSurvey: false, isWorking: false, maxRows: 6, bodyColumns: 120, scroll: { offset: 0, bodyRows: 6 }, view: {} }
+
+// The strip stays closed until its button in the footer opens it; this
+// presses that button unless the strip already shows.
+async function openStrip($: Engine): Promise<void> {
+  const band = await $.ui.mount({ plugin: 'nightshift', surface: 'desktop', component: 'AbovePrompt', props: STRIP_BAND })
+  const isOpen = (await band.find({ key: 'talk' })) !== undefined || (await band.find({ key: 'end' })) !== undefined
+  await band.unmount()
+
+  if (!isOpen) {
+    const footer = await $.ui.mount({ plugin: 'nightshift', surface: 'desktop', component: 'SessionMode', props: FOOTER })
+    await footer.press({ key: 'codex-strip' })
+    await footer.unmount()
+  }
+}
 
 const NOW = Date.parse('2026-10-02T06:00:00Z')
 const LATER = '2026-10-05T03:48:00Z'
@@ -131,6 +147,9 @@ type World = {
 
 function world(on: On, percentUsed: number): World {
   const seen: World = { claude: 0, spawned: [], notices: [], statuses: [], limitsLine: CODEX_LIMITS_LINE, setNow: async () => {}, images: [], submitted: [], voiceRun: VOICE_RUN, spoke: [], browserCalls: [], awaitsBrowser: false, results: [], panes: [], pane: 'shown' }
+  // The engine's own line under the box and its empty band, beneath the plugin.
+  on('ui.render', { component: 'SessionMode' }, () => ({ type: 'engine' as const, ref: 0 }))
+  on('ui.render', { component: 'AbovePrompt' }, () => ({ type: 'engine' as const, ref: 0 }))
   const usage: SessionUsage = {
     startedAt: NOW,
     context: { window: 200000 },
@@ -361,6 +380,7 @@ describe('the Codex strip', () => {
     world(on, 15)
 
     const BAND = { hasSurvey: false, isWorking: false, maxRows: 6, bodyColumns: 120, scroll: { offset: 0, bodyRows: 6 }, view: {} }
+    await openStrip($)
     const ui = await $.ui.mount({ plugin: 'nightshift', surface: 'desktop', component: 'AbovePrompt', props: BAND })
 
     expect(await ui.find({ key: 'effort', type: 'Select' })).toBeDefined()
@@ -378,6 +398,7 @@ describe('the Codex strip', () => {
     let meter = ''
 
     for (let tries = 0; tries < 20 && meter === ''; tries++) {
+      await openStrip($)
       const ui = await $.ui.mount({ plugin: 'nightshift', surface: 'desktop', component: 'AbovePrompt', props: BAND })
       const found = await ui.find({ key: 'limit' })
 
@@ -395,6 +416,7 @@ describe('the strip over time', () => {
 
   async function strip($: Engine, query: Record<string, unknown>): Promise<string> {
     for (let tries = 0; tries < 20; tries++) {
+      await openStrip($)
       const ui = await $.ui.mount({ plugin: 'nightshift', surface: 'desktop', component: 'AbovePrompt', props: BAND })
       const found = await ui.find(query)
 
@@ -554,6 +576,7 @@ describe('the Codex strip dropdowns', () => {
     await ask($, 't1', 'add a footer')
 
     const BAND = { hasSurvey: false, isWorking: false, maxRows: 6, bodyColumns: 120, scroll: { offset: 0, bodyRows: 6 }, view: {} }
+    await openStrip($)
     const ui = await $.ui.mount({ plugin: 'nightshift', surface: 'desktop', component: 'AbovePrompt', props: BAND })
 
     expect((await ui.find({ key: 'effort', type: 'Select' }))?.props.value).toBe('medium')
@@ -572,6 +595,7 @@ describe('the Codex strip dropdowns', () => {
     await ask($, 't1', 'hello')
 
     const BAND = { hasSurvey: false, isWorking: false, maxRows: 6, bodyColumns: 120, scroll: { offset: 0, bodyRows: 6 }, view: {} }
+    await openStrip($)
     const ui = await $.ui.mount({ plugin: 'nightshift', surface: 'desktop', component: 'AbovePrompt', props: BAND })
 
     expect((await ui.find({ key: 'tools', type: 'Select' }))?.props.value).toBe('claude')
@@ -621,6 +645,7 @@ describe('Codex voice and images', () => {
   test('Talk starts Codex voice, and a spoken exchange lands in the chat without a model', SLOW, async ($, on) => {
     const seen = world(on, 15)
     const BAND = { hasSurvey: false, isWorking: false, maxRows: 6, bodyColumns: 120, scroll: { offset: 0, bodyRows: 6 }, view: {} }
+    await openStrip($)
     const ui = await $.ui.mount({ plugin: 'nightshift', surface: 'desktop', component: 'AbovePrompt', props: BAND })
 
     await ui.press({ key: 'talk' })
@@ -722,6 +747,7 @@ describe('who does the work you ask for out loud', () => {
     ].join('\n')
 
     const BAND = { hasSurvey: false, isWorking: false, maxRows: 6, bodyColumns: 120, scroll: { offset: 0, bodyRows: 6 }, view: {} }
+    await openStrip($)
     const ui = await $.ui.mount({ plugin: 'nightshift', surface: 'desktop', component: 'AbovePrompt', props: BAND })
 
     await ui.press({ key: 'talk' })
@@ -784,6 +810,7 @@ describe("Codex in Claude's browser pane", () => {
 
   async function press($: Engine, key: string): Promise<boolean> {
     for (let tries = 0; tries < 100; tries++) {
+      await openStrip($)
       const ui = await $.ui.mount({ plugin: 'nightshift', surface: 'desktop', component: 'AbovePrompt', props: BAND })
 
       if ((await ui.find({ key, type: 'Button' })) !== undefined) {
@@ -865,6 +892,7 @@ describe('a live call stays light', () => {
     ].join('\n')
 
     const BAND = { hasSurvey: false, isWorking: false, maxRows: 6, bodyColumns: 120, scroll: { offset: 0, bodyRows: 6 }, view: {} }
+    await openStrip($)
     const ui = await $.ui.mount({ plugin: 'nightshift', surface: 'desktop', component: 'AbovePrompt', props: BAND })
 
     await ui.press({ key: 'talk' })
@@ -921,6 +949,7 @@ describe("Codex's voice, live in the chat", () => {
     ].join('\n')
 
     const BAND = { hasSurvey: false, isWorking: false, maxRows: 6, bodyColumns: 120, scroll: { offset: 0, bodyRows: 6 }, view: {} }
+    await openStrip($)
     const ui = await $.ui.mount({ plugin: 'nightshift', surface: 'desktop', component: 'AbovePrompt', props: BAND })
 
     await ui.press({ key: 'talk' })
@@ -949,6 +978,7 @@ describe("Codex's voice, live in the chat", () => {
     ].join('\n')
 
     const BAND = { hasSurvey: false, isWorking: false, maxRows: 6, bodyColumns: 120, scroll: { offset: 0, bodyRows: 6 }, view: {} }
+    await openStrip($)
     const ui = await $.ui.mount({ plugin: 'nightshift', surface: 'desktop', component: 'AbovePrompt', props: BAND })
 
     await ui.press({ key: 'talk' })
@@ -974,6 +1004,7 @@ describe("Codex's voice, live in the chat", () => {
     ].join('\n')
 
     const BAND = { hasSurvey: false, isWorking: false, maxRows: 6, bodyColumns: 120, scroll: { offset: 0, bodyRows: 6 }, view: {} }
+    await openStrip($)
     const ui = await $.ui.mount({ plugin: 'nightshift', surface: 'desktop', component: 'AbovePrompt', props: BAND })
 
     await ui.press({ key: 'talk' })
@@ -1019,5 +1050,45 @@ describe("Claude's browser pane while Codex browses", () => {
 
     expect(seen.panes).toEqual(['Claude_Browser navigate'])
     expect(seen.notices.some(text => text.includes('⌘⇧B'))).toBe(true)
+  })
+})
+
+describe('the Codex button in the footer', () => {
+  for (const surface of ['desktop', 'terminal'] as const) {
+    test(`on the ${surface}, the band stays empty until the button opens the strip; Close shuts it`, SLOW, async ($, on) => {
+      world(on, 15)
+
+      const band = await $.ui.mount({ plugin: 'nightshift', surface, component: 'AbovePrompt', props: STRIP_BAND })
+      const footer = await $.ui.mount({ plugin: 'nightshift', surface, component: 'SessionMode', props: FOOTER })
+
+      expect(await band.find({ key: 'tools' })).toBeUndefined()
+      expect(await band.find({ key: 'codex-strip' })).toBeUndefined()
+      expect((await footer.find({ key: 'codex-strip' }))?.props.label).toMatch(/^Codex \w+$/)
+
+      await footer.press({ key: 'codex-strip' })
+      expect(await band.find({ key: 'tools' })).toBeDefined()
+
+      await band.press({ key: 'close' })
+      expect(await band.find({ key: 'tools' })).toBeUndefined()
+      await footer.unmount()
+      await band.unmount()
+    })
+  }
+
+  test('shows the week left only once it runs under 20%', SLOW, async ($, on) => {
+    const seen = world(on, 15)
+
+    seen.limitsLine = CODEX_LIMITS_LINE.replace('"used_percent":22', '"used_percent":90')
+    await ask($, 't1', 'add a footer')
+
+    let label = ''
+
+    for (let tries = 0; tries < 20 && !label.includes('10%'); tries++) {
+      const footer = await $.ui.mount({ plugin: 'nightshift', surface: 'desktop', component: 'SessionMode', props: FOOTER })
+      label = String((await footer.find({ key: 'codex-strip' }))?.props.label ?? '')
+      await footer.unmount()
+    }
+
+    expect(label).toMatch(/^Codex \w+ · 10%$/)
   })
 })
