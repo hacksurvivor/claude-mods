@@ -1,14 +1,12 @@
 # graft's local graph cache — regenerable, not committed (run `graft build`).
 /graft/
-# Only Relay is published; the effort router stays local.
-/mods/effort-router/
 # Personal mods with account and client details stay local.
 /mods/account-guard/
 /mods/scoreboard/
 /mods/toolsmith/
 /mods/money-lens/
 /mods/clock/
-/mods/taste-ledger/
+/mods/mods-directory/
 # Generated mod type definitions.
 .claude-plugin/types/
 .DS_Store

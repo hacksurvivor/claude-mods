@@ -1,0 +1,16 @@
+{
+  "name": "grudge",
+  "displayName": "Grudge",
+  "version": "0.1.0",
+  "description": "Every look you reject becomes a rule for that project, with your screenshot, so Claude never brings it back; it also says when Claude changed UI without a preview you approved",
+  "author": {
+    "name": "hacksurvivor",
+    "url": "https://github.com/hacksurvivor"
+  },
+  "homepage": "https://github.com/hacksurvivor/claude-mods/tree/main/mods/grudge",
+  "repository": "https://github.com/hacksurvivor/claude-mods",
+  "license": "Apache-2.0",
+  "privacyPolicyUrl": "https://github.com/hacksurvivor/claude-mods/blob/main/mods/grudge/PRIVACY.md",
+  "keywords": ["design", "ui", "taste", "regressions", "previews", "screenshots"],
+  "types": "./types/index.d.ts"
+}

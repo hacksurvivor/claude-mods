@@ -19,6 +19,12 @@
       "source": "./mods/third-eye",
       "description": "A footnote under Claude's reply with one idea you wouldn't have suggested yourself",
       "category": "productivity"
+    },
+    {
+      "name": "grudge",
+      "source": "./mods/grudge",
+      "description": "Every look you reject becomes a rule for that project, with your screenshot, so Claude never brings it back",
+      "category": "productivity"
     }
   ]
 }
