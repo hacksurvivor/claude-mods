@@ -2,6 +2,8 @@
 
 A Claude Code mod that shows you the idea you wouldn't have had. A little while after Claude answers, a folded footnote appears under the reply: **Another angle ›**. Open it and you get one idea from outside your usual frame, anchored in something from this chat, with the blind spot it comes from.
 
+![Third eye in the Claude desktop app: an idea unfolded under Claude's reply, with Ask Claude about this and Not for me, and the folded footnote below](assets/third-eye.png)
+
 - **Ask Claude about this** sends the idea as your next message.
 - **Not for me** hides it, and the eye remembers what you turned down so the next ideas steer away from that kind.
 - `/third-eye` asks for an idea right now. `/third-eye off` rests it for the session, `/third-eye on` wakes it.

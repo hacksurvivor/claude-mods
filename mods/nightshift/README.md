@@ -1,4 +1,4 @@
-![Nightshift icon](assets/icon.png)
+![Nightshift: a crescent moon carrying a lantern](assets/nightshift-moon.png)
 
 # Nightshift
 
