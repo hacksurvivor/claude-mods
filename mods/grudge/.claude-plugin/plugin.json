@@ -1,7 +1,7 @@
 {
   "name": "grudge",
   "displayName": "Grudge",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Every look you reject becomes a rule for that project, with your screenshot, so Claude never brings it back; it also says when Claude changed UI without a preview you approved",
   "author": {
     "name": "hacksurvivor",

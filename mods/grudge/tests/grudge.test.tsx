@@ -52,7 +52,7 @@ describe('what Claude and the person read', () => {
     expect(said).toContain('Grudge for shop-app')
     expect(said).toContain('Rejected:\n- Top bar: Keep the R4 top bar in every theme (Oct 4) [screenshot: /home/me/.claude/grudge/shop-app/grudge-1-1.png]')
     expect(said).toContain('Approved:\n- Icons: Keep the R2 icon set (Oct 4)')
-    expect(said).toContain('Mobbin')
+    expect(said).toContain('real, shipped products')
     expect(said).toContain('No preview has been approved in this session yet.')
     expect(grudgeBrief('/other', [entry({})], true)).toContain('nothing recorded yet')
   })

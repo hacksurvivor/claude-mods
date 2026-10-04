@@ -79,7 +79,7 @@ export function grudgeBrief(project: string, entries: Entry[], isApproved: boole
       : `Grudge for ${nameOf(project)}: nothing recorded yet.`,
     ...(rejected.length > 0 ? ['Rejected:', ...rejected] : []),
     ...(approved.length > 0 ? ['Approved:', ...approved] : []),
-    'Before inventing new UI, look for references on Mobbin. For a new look or a change of direction, show a preview and get the person\'s approval first; a faithful fix to an approved design needs none.',
+    'Before inventing new UI, look for references from real, shipped products. For a new look or a change of direction, show a preview and get the person\'s approval first; a faithful fix to an approved design needs none.',
     isApproved ? '' : 'No preview has been approved in this session yet.',
   ]
     .filter(text => text !== '')
