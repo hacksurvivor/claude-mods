@@ -125,3 +125,14 @@ export function isUnder(anchor: string, blockText: string): boolean {
 
   return block.length >= 12 && anchor.endsWith(block.slice(-Math.min(block.length, 80)))
 }
+
+// What Claude passes to the note tool.
+export const NOTE_SCHEMA = {
+  type: 'object',
+  properties: {
+    screen: { type: 'string', description: 'The part of the product, in 1 to 4 words' },
+    rule: { type: 'string', description: 'One specific imperative line to follow next time' },
+    verdict: { type: 'string', enum: ['rejected', 'approved'], description: 'Left out: the verdict the person just gave' },
+  },
+  required: ['screen', 'rule'],
+} as const
