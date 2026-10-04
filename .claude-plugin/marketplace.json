@@ -13,6 +13,12 @@
       "source": "./mods/nightshift",
       "description": "Codex inside Claude Code: it picks up the chat when your Claude limit runs out, talks with you through Codex's live voice, makes images Claude can ask for, and browses in Claude's browser pane",
       "category": "productivity"
+    },
+    {
+      "name": "third-eye",
+      "source": "./mods/third-eye",
+      "description": "A footnote under Claude's reply with one idea you wouldn't have suggested yourself",
+      "category": "productivity"
     }
   ]
 }

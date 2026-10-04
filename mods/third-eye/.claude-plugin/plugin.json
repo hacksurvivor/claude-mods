@@ -1,0 +1,16 @@
+{
+  "name": "third-eye",
+  "displayName": "Third eye",
+  "version": "0.1.0",
+  "description": "A footnote under Claude's reply with one idea you wouldn't have suggested yourself",
+  "author": {
+    "name": "hacksurvivor",
+    "url": "https://github.com/hacksurvivor"
+  },
+  "homepage": "https://github.com/hacksurvivor/claude-mods/tree/main/mods/third-eye",
+  "repository": "https://github.com/hacksurvivor/claude-mods",
+  "license": "Apache-2.0",
+  "privacyPolicyUrl": "https://github.com/hacksurvivor/claude-mods/blob/main/mods/third-eye/PRIVACY.md",
+  "keywords": ["ideas", "blind-spots", "brainstorming", "footnote"],
+  "types": "./types/index.d.ts"
+}

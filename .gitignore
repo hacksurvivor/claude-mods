@@ -5,7 +5,8 @@
 # Personal mods with account and client details stay local.
 /mods/account-guard/
 /mods/scoreboard/
-/mods/third-eye/
+/mods/toolsmith/
+/mods/money-lens/
 # Generated mod type definitions.
 .claude-plugin/types/
 .DS_Store
