@@ -53,7 +53,10 @@ const NOTE_SCHEMA = {
 } as const
 
 async function projectOf($: EngineInterface): Promise<string> {
-  return (await $.session.repo())?.root ?? (await $.session.cwd())
+  const repo = await $.session.repo()
+  const cwd = await $.session.cwd()
+
+  return repo?.root ?? cwd
 }
 
 async function grudges($: EngineInterface): Promise<Entry[]> {
