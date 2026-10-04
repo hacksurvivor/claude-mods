@@ -7,6 +7,8 @@
 /mods/scoreboard/
 /mods/toolsmith/
 /mods/money-lens/
+/mods/clock/
+/mods/taste-ledger/
 # Generated mod type definitions.
 .claude-plugin/types/
 .DS_Store
