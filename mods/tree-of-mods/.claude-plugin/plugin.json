@@ -1,0 +1,22 @@
+{
+  "name": "tree-of-mods",
+  "displayName": "The Tree of Mods",
+  "version": "0.1.0",
+  "description": "/mods opens a panel beside the chat with the mods you made and the plugins you installed: on or off, tests, updates you can apply, and your repo's GitHub numbers",
+  "author": {
+    "name": "hacksurvivor",
+    "url": "https://github.com/hacksurvivor"
+  },
+  "homepage": "https://github.com/hacksurvivor/claude-mods/tree/main/mods/tree-of-mods",
+  "repository": "https://github.com/hacksurvivor/claude-mods",
+  "license": "Apache-2.0",
+  "privacyPolicyUrl": "https://github.com/hacksurvivor/claude-mods/blob/main/mods/tree-of-mods/PRIVACY.md",
+  "keywords": [
+    "mods",
+    "plugins",
+    "dashboard",
+    "github",
+    "updates"
+  ],
+  "types": "./types/index.d.ts"
+}

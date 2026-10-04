@@ -25,6 +25,30 @@
       "source": "./mods/grudge",
       "description": "Every look you reject becomes a rule for that project, with your screenshot, so Claude never brings it back",
       "category": "productivity"
+    },
+    {
+      "name": "bouncer",
+      "source": "./mods/bouncer",
+      "description": "Paste a link with a short question and Claude's answer opens with a verdict for your projects: use it, later or skip, the effort, the cost and one line why",
+      "category": "productivity"
+    },
+    {
+      "name": "clock",
+      "source": "./mods/clock",
+      "description": "Every prompt carries your local date, weekday and the week ranges, and a reply whose dates miss the period you asked about gets flagged",
+      "category": "productivity"
+    },
+    {
+      "name": "updates",
+      "source": "./mods/updates",
+      "description": "A weekly check of your Claude and Codex plugins, global npm packages and adapted skills for newer versions, with a one-line summary of each",
+      "category": "productivity"
+    },
+    {
+      "name": "tree-of-mods",
+      "source": "./mods/tree-of-mods",
+      "description": "/mods opens a panel beside the chat with the mods you made and the plugins you installed: on or off, tests, updates you can apply, and your repo's GitHub numbers",
+      "category": "productivity"
     }
   ]
 }

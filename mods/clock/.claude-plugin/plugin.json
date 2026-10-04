@@ -1,0 +1,21 @@
+{
+  "name": "clock",
+  "displayName": "Clock",
+  "version": "0.1.0",
+  "description": "Every prompt carries your local date, weekday and the week ranges, and a reply whose dates miss the period you asked about gets flagged",
+  "author": {
+    "name": "hacksurvivor",
+    "url": "https://github.com/hacksurvivor"
+  },
+  "homepage": "https://github.com/hacksurvivor/claude-mods/tree/main/mods/clock",
+  "repository": "https://github.com/hacksurvivor/claude-mods",
+  "license": "Apache-2.0",
+  "privacyPolicyUrl": "https://github.com/hacksurvivor/claude-mods/blob/main/mods/clock/PRIVACY.md",
+  "keywords": [
+    "dates",
+    "time",
+    "timezones",
+    "reports"
+  ],
+  "types": "./types/index.d.ts"
+}

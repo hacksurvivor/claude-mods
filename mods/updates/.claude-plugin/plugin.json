@@ -1,0 +1,22 @@
+{
+  "name": "updates",
+  "displayName": "Updates",
+  "version": "0.2.0",
+  "description": "A weekly check of your Claude and Codex plugins, global npm packages and adapted skills for newer versions, with a one-line summary of each",
+  "author": {
+    "name": "hacksurvivor",
+    "url": "https://github.com/hacksurvivor"
+  },
+  "homepage": "https://github.com/hacksurvivor/claude-mods/tree/main/mods/updates",
+  "repository": "https://github.com/hacksurvivor/claude-mods",
+  "license": "Apache-2.0",
+  "privacyPolicyUrl": "https://github.com/hacksurvivor/claude-mods/blob/main/mods/updates/PRIVACY.md",
+  "keywords": [
+    "updates",
+    "plugins",
+    "skills",
+    "npm",
+    "maintenance"
+  ],
+  "types": "./types/index.d.ts"
+}

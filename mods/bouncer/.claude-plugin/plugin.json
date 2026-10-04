@@ -1,0 +1,21 @@
+{
+  "name": "bouncer",
+  "displayName": "Bouncer",
+  "version": "0.1.0",
+  "description": "Paste a link with a short question and Claude's answer opens with a verdict for your projects: use it, later or skip, the effort, the cost and one line why",
+  "author": {
+    "name": "hacksurvivor",
+    "url": "https://github.com/hacksurvivor"
+  },
+  "homepage": "https://github.com/hacksurvivor/claude-mods/tree/main/mods/bouncer",
+  "repository": "https://github.com/hacksurvivor/claude-mods",
+  "license": "Apache-2.0",
+  "privacyPolicyUrl": "https://github.com/hacksurvivor/claude-mods/blob/main/mods/bouncer/PRIVACY.md",
+  "keywords": [
+    "links",
+    "research",
+    "triage",
+    "decisions"
+  ],
+  "types": "./types/index.d.ts"
+}
