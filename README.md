@@ -27,3 +27,7 @@ Install in Claude Code:
 ```
 
 Each mod's README lists its requirements and everything it runs, reads and sends: [Nightshift](mods/nightshift/README.md), [Third eye](mods/third-eye/README.md), [Grudge](mods/grudge/README.md), [Bouncer](mods/bouncer/README.md), [Clock](mods/clock/README.md), [Updates](mods/updates/README.md), [The Tree of Mods](mods/tree-of-mods/README.md).
+
+## Author
+
+Made by [Sergey Moloman](https://moloman.dev), AI product engineer.
