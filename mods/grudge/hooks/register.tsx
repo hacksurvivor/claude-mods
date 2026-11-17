@@ -26,7 +26,7 @@ import {
 
 // The store key predates the name; Mods reads it under this key too.
 const STORE_KEY = 'ledger'
-const KEPT = 400
+const KEPT = 3000
 const NOTICES_KEPT = 30
 
 const notices = atom({ plugin: 'grudge', key: 'notices' } as const, [] as Notice[])

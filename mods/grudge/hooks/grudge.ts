@@ -2,7 +2,7 @@ import type { Entry } from '../types'
 
 export const NOTE_TOOL = 'note'
 export const NOTE_TOOL_ID = 'mcp__grudge__note'
-export const RULES_SHOWN = 25
+export const RULES_SHOWN = 60
 
 const REJECTED =
   /\bslop|\bugly\b|\blooks? (bad|off|wrong|weird|cheap|awful|terrible|shit|sloppy|old)\b|\bdon'?t like\b|\bnot (right|correct|good enough)\b|\bdoesn'?t look\b|\bregress|\bold (design|look|style)\b|\bwtf\b|не нравится|некрасив|убог|криво|выглядит (плохо|странно|дёшево|дешево|старо)|хуйн|говно/i

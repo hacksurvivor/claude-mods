@@ -24,7 +24,9 @@ def last_images(transcript: str) -> list[dict]:
                 row = json.loads(line)
             except ValueError:
                 continue
-            if row.get('type') != 'user':
+            # Hook context (Grudge's own ask included) lands as a meta user row right after the
+            # person's message; it isn't theirs, so it must not reset what they sent.
+            if row.get('type') != 'user' or row.get('isMeta'):
                 continue
             content = (row.get('message') or {}).get('content')
             if isinstance(content, str):
