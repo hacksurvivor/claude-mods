@@ -1,14 +1,15 @@
-# graft's local graph cache — regenerable, not committed (run `graft build`).
-/graft/
-# Personal mods with account and client details stay local.
-/mods/account-guard/
-/mods/scoreboard/
-# Generated mod type definitions.
 .claude-plugin/types/
+# Code-index caches anywhere in the tree.
+/directory-submission.md
 .DS_Store
-# Local search config for graft; not part of the published mods.
+# Generated mod type definitions.
+/graft/
+graft/
+# graft's local graph cache — regenerable, not committed (run `graft build`).
 /.ignore
 # Local draft for the directory portal; not published.
-/directory-submission.md
-# Code-index caches anywhere in the tree.
-graft/
+# Local search config for graft; not part of the published mods.
+/mods/account-guard/
+/mods/scoreboard/
+# Personal mods with account and client details stay local.
+__pycache__/
