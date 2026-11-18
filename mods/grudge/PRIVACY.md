@@ -16,7 +16,7 @@ Grudge sends nothing itself. The rules it keeps, and the file paths of their scr
 
 ## What it keeps
 
-On your computer, until you remove them: the rules (up to 400) in Claude Code's plugin store, and the screenshots in `~/.claude/grudge/`. `/grudge forget` and Undo remove a rule; its screenshot stays in that folder until you delete it.
+On your computer, until you remove them: the rules (up to 3,000) in Claude Code's plugin store, and the screenshots in `~/.claude/grudge/`. `/grudge forget` and Undo remove a rule; its screenshot stays in that folder until you delete it.
 
 ## Children
 
